@@ -1,182 +1,109 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useAuth } from "../context/AuthContext";
+import "../index.css";
+
+const products = [
+  { name: "Notebook", price: 25, stock: 50, status: "Active" },
+  { name: "Ballpen", price: 12, stock: 100, status: "Active" },
+  { name: "Cooking Oil", price: 55, stock: 15, status: "Active" },
+  { name: "Sari-Sari Bread", price: 15, stock: 0, status: "Inactive" },
+];
+
+const auditLogs = [
+  {
+    time: "17:45 PM",
+    user: "Stephanie",
+    action: "Void Item #2",
+    reason: "Customer changed mind",
+  },
+  {
+    time: "18:10 PM",
+    user: "Renz",
+    action: "Reprint Receipt #88",
+    reason: "Printer jammed",
+  },
+];
 
 const Dashboard = () => {
-
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
-
-  // PRODUCT DATA
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Notebook', price: 25, stock: 50, status: 'Active' },
-    { id: 2, name: 'Ballpen', price: 12, stock: 100, status: 'Active' },
-    { id: 3, name: 'Cooking Oil', price: 55, stock: 15, status: 'Active' },
-    { id: 4, name: 'Sari-Sari Bread', price: 15, stock: 0, status: 'Inactive' }
-  ]);
-
-  // TOGGLE PRODUCT STATUS
-  const toggleProductStatus = (id) => {
-    setProducts(products.map(product =>
-      product.id === id
-        ? { ...product, status: product.status === 'Active' ? 'Inactive' : 'Active' }
-        : product
-    ));
-  };
-
-  // LOGOUT
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  // AUDIT LOGS
-  const auditLogs = [
-    { id: 101, user: 'Stephanie', action: 'Void Item #2', reason: 'Customer changed mind', time: '17:45 PM' },
-    { id: 102, user: 'Renz', action: 'Reprint Receipt #88', reason: 'Printer jammed', time: '18:10 PM' }
-  ];
+  const { currentUser } = useAuth();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+    <div className="container">
+      <h2>Admin Dashboard</h2>
 
-      {/* USER INFO */}
-      <div className="card">
-        <h2>Admin Dashboard</h2>
-        <p><strong>User:</strong> {currentUser?.username}</p>
-        <p><strong>Role:</strong> {currentUser?.role}</p>
-
-        <button
-          className="btn"
-          style={{ marginTop: '10px', background: '#000', color: '#fff' }}
-          onClick={handleLogout}
-        >
-          Logout
-        </button>
+      {/* User Info */}
+      <div className="user-info">
+        <div className="user-avatar">{currentUser?.username?.[0]?.toUpperCase()}</div>
+        <div className="user-details">
+          <strong>{currentUser?.username}</strong>
+          <span>Role: {currentUser?.role}</span>
+        </div>
       </div>
 
-
-      {/* PRODUCT MANAGEMENT */}
-      <div className="card">
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Product Management */}
+      <div className="product-section">
+        <div className="section-header">
           <h2>Product Management</h2>
-
-          <button
-            className="btn btn-dark"
-            onClick={() => alert("Add Product Modal Placeholder")}
-          >
-            + Add New Product
-          </button>
+          <button className="add-product-btn">+ Add New Product</button>
         </div>
 
-        <table style={{ marginTop: '20px', width: '100%' }}>
-
-          <thead>
-            <tr style={{ background: '#000', color: '#fff' }}>
-              <th>Product Name</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {products.map(product => (
-
-              <tr
-                key={product.id}
-                style={{
-                  borderBottom: '1px solid #ddd',
-                  opacity: product.status === 'Inactive' ? 0.5 : 1
-                }}
-              >
-
-                <td>{product.name}</td>
-
-                <td>₱{product.price.toFixed(2)}</td>
-
-                <td>{product.stock} units</td>
-
-                <td
-                  style={{
-                    fontWeight: 'bold',
-                    color: product.status === 'Active' ? 'green' : 'red'
-                  }}
-                >
-                  {product.status}
-                </td>
-
-                <td>
-
-                  <button
-                    className="btn"
-                    style={{ fontSize: '12px', marginRight: '5px' }}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className="btn"
-                    style={{
-                      fontSize: '12px',
-                      color: product.status === 'Active' ? 'red' : 'black'
-                    }}
-                    onClick={() => toggleProductStatus(product.id)}
-                  >
-                    {product.status === 'Active' ? 'Deactivate' : 'Activate'}
-                  </button>
-
-                </td>
-
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
+            </thead>
+            <tbody>
+              {products.map((prod, index) => (
+                <tr key={index}>
+                  <td>{prod.name}</td>
+                  <td>₱{prod.price.toFixed(2)}</td>
+                  <td>{prod.stock} units</td>
+                  <td>
+                    <span className={prod.status === "Active" ? "status-active" : "status-inactive"}>
+                      {prod.status}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="actions">
+                      <button className="btn-edit">Edit</button>
+                      {prod.status === "Active" ? (
+                        <button className="btn-deactivate">Deactivate</button>
+                      ) : (
+                        <button className="btn-activate">Activate</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-
-      {/* AUDIT LOGS */}
-      <div className="card" style={{ background: '#f9f9f9', borderStyle: 'dashed' }}>
-
-        <h3>Supervisor Audit Logs</h3>
-
-        <p style={{ fontSize: '13px', marginBottom: '15px' }}>
-          Tracking all sensitive system activities (Voids, Reprints, Status Changes).
-        </p>
-
-        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-
-          {auditLogs.map(log => (
-
-            <div
-              key={log.id}
-              style={{
-                padding: '10px',
-                borderLeft: '4px solid #000',
-                background: '#fff',
-                marginBottom: '10px',
-                fontSize: '14px'
-              }}
-            >
-
-              <strong>[{log.time}]</strong> {log.user}: <em>{log.action}</em>
-
-              <br />
-
-              <small>Reason: {log.reason}</small>
-
-            </div>
-
-          ))}
-
+      {/* Supervisor Audit Logs */}
+      <div className="audit-logs">
+        <div className="section-header">
+          <h2>Supervisor Audit Logs</h2>
         </div>
-
+        <p style={{ color: "var(--muted)", fontSize: ".875rem", marginBottom: "16px" }}>
+          Tracking all sensitive system activities — Voids, Reprints, Status Changes.
+        </p>
+        {auditLogs.map((log, index) => (
+          <div className="audit-entry" key={index}>
+            <div className="audit-icon">📋</div>
+            <div className="audit-body">
+              <div className="audit-time">{log.time} · {log.user}</div>
+              <div className="audit-action">{log.action}</div>
+              <div className="audit-reason">Reason: {log.reason}</div>
+            </div>
+          </div>
+        ))}
       </div>
 
     </div>
