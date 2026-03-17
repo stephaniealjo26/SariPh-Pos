@@ -1,6 +1,6 @@
 import { createContext, useState, useContext } from "react";
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
 
@@ -15,23 +15,18 @@ export const AuthProvider = ({ children }) => {
     const user = users.find(
       (u) => u.username === username && u.password === password
     );
-
     if (user) {
       setCurrentUser(user);
       return true;
     }
-
     return false;
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-  };
+  const logout = () => setCurrentUser(null);
 
   const addUser = (newUser) => {
     setUsers([...users, { id: Date.now(), ...newUser }]);
   };
-
 
   const isSupervisor = () => {
     return currentUser?.role === 'Administrator' || currentUser?.role === 'Supervisor';
@@ -39,14 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{
-        users,
-        currentUser,
-        login,
-        logout,
-        addUser,
-        isSupervisor  
-      }}
+      value={{ users, currentUser, login, logout, addUser, isSupervisor }}
     >
       {children}
     </AuthContext.Provider>
@@ -54,4 +42,3 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
-

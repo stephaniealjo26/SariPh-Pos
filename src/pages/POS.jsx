@@ -1,407 +1,322 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext.jsx';
-import { addAuditLog, LOG_ACTIONS } from '../utils/AuditLog.jsx';
+import { addAuditLog, LOG_ACTIONS } from "../utils/AuditLogs.jsx";
+import '../index.css';
 
-const SUPERVISOR_PIN = '1234';
+const DISCOUNT_OPTIONS = [
+  { label: 'No Discount', value: 0, key: 'None' },
+  { label: 'Senior Citizen (20%)', value: 0.20, key: 'Senior Citizen' },
+  { label: 'PWD (20%)', value: 0.20, key: 'PWD' },
+  { label: 'Athlete (20%)', value: 0.20, key: 'Athlete' },
+  { label: 'Solo Parent (10%)', value: 0.10, key: 'Solo Parent' },
+];
 
+const FALLBACK_PRODUCTS = [
+  { id: 1, name: 'Notebook', price: 25, stock: 50, status: 'Active' },
+  { id: 2, name: 'Ballpen', price: 12, stock: 100, status: 'Active' },
+  { id: 3, name: 'Cooking Oil', price: 55, stock: 15, status: 'Active' },
+  { id: 4, name: 'Sari-Sari Bread', price: 15, stock: 30, status: 'Active' },
+  { id: 5, name: 'Instant Noodles', price: 14, stock: 80, status: 'Active' },
+  { id: 6, name: 'Canned Sardines', price: 22, stock: 45, status: 'Active' },
+];
+
+// ─── Receipt Sub-Component ───
+const Receipt = ({ transaction, onClose, onConfirm, isReprint = false }) => {
+  if (!transaction) return null;
+  return (
+    <div className="receipt-backdrop">
+      <div className="receipt-modal">
+        <div className="receipt-top">
+          {isReprint && (
+            <div style={{ color: 'gold', textAlign: 'center', fontSize: '11px', marginBottom: '4px', letterSpacing: '2px' }}>
+              ★ REPRINT ★
+            </div>
+          )}
+          <div className="receipt-brand">SARIPH.POS</div>
+          <div className="receipt-date">
+            TXN #{transaction.id} · {transaction.date}
+          </div>
+        </div>
+        <div className="receipt-body">
+          {transaction.items.map((item, idx) => (
+            <div key={idx} className="r-item">
+              <span>{item.name} ×{item.qty}</span>
+              <span>₱{(item.price * item.qty).toFixed(2)}</span>
+            </div>
+          ))}
+          <hr className="r-div" />
+          <div className="r-sub">
+            <span>Subtotal</span>
+            <span>₱{transaction.subtotal.toFixed(2)}</span>
+          </div>
+          {transaction.discountAmount > 0 && (
+            <div className="r-disc">
+              <span>Discount ({transaction.discountKey})</span>
+              <span>-₱{transaction.discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="r-total">
+            <span>TOTAL</span>
+            <span>₱{transaction.total.toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="receipt-actions">
+          {onConfirm ? (
+            <>
+              <button className="btn-print" onClick={onConfirm}>Confirm & Complete Sale</button>
+              <button className="btn-cancel" onClick={onClose}>Cancel</button>
+            </>
+          ) : (
+            <button className="btn-print" onClick={onClose}>Close</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main POS Component ───
 const POS = () => {
   const { currentUser } = useContext(AuthContext);
+
+  // Read products from localStorage (synced with Dashboard)
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('pos_products');
+    return saved ? JSON.parse(saved) : FALLBACK_PRODUCTS;
+  });
+
   const [cart, setCart] = useState([]);
-  const [discount, setDiscount] = useState(0);
-  const [discountType, setDiscountType] = useState("None");
+  const [discountOption, setDiscountOption] = useState(DISCOUNT_OPTIONS[0]);
   const [showReceipt, setShowReceipt] = useState(false);
   const [lastTransaction, setLastTransaction] = useState(null);
-  const [showPostVoidModal, setShowPostVoidModal] = useState(false);
-  const [postVoidTarget, setPostVoidTarget] = useState(null);
-  const [supervisorPin, setSupervisorPin] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [completedTransactions, setCompletedTransactions] = useState(
-    JSON.parse(localStorage.getItem('completedTransactions')) || []
-  );
+  const [showLastReceipt, setShowLastReceipt] = useState(false);
 
-  const products = [
-    { id: 1, name: 'Notebook', price: 25 },
-    { id: 2, name: 'Ballpen', price: 12 },
-    { id: 3, name: 'Cooking Oil', price: 55 },
-    { id: 4, name: 'Sari-Sari Bread', price: 15 }
-  ];
+  const txnCounter = useRef(1000 + Math.floor(Math.random() * 9000));
 
-  const addToCart = (p) => setCart([...cart, { ...p, cartId: Date.now() }]);
+  // Sync products if Dashboard updates them
+  useEffect(() => {
+    const syncProducts = () => {
+      const saved = localStorage.getItem('pos_products');
+      if (saved) setProducts(JSON.parse(saved));
+    };
+    window.addEventListener('storage', syncProducts);
+    return () => window.removeEventListener('storage', syncProducts);
+  }, []);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-  const discountAmount = subtotal * discount;
+  // Calculations
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const discountAmount = subtotal * discountOption.value;
   const total = subtotal - discountAmount;
 
+  const activeProducts = products.filter(p => p.status === 'Active');
+
+  const addToCart = (p) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.id === p.id);
+      if (existing) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { ...p, qty: 1, cartId: Date.now() }];
+    });
+  };
+
+  const changeQty = (cartId, delta) => {
+    setCart(prev =>
+      prev
+        .map(i => i.cartId === cartId ? { ...i, qty: i.qty + delta } : i)
+        .filter(i => i.qty > 0)
+    );
+  };
 
   const voidItem = (cartId) => {
-    const reason = prompt("Enter reason for voiding (Required for Audit):");
-    if (reason) {
-      const item = cart.find(i => i.cartId === cartId);
-      setCart(cart.filter(i => i.cartId !== cartId));
-      addAuditLog({
-        action: LOG_ACTIONS.VOID_ITEM,
-        performedBy: currentUser?.username || 'Unknown',
-        details: { itemName: item?.name, price: item?.price, reason }
-      });
-    }
-  };
+    const item = cart.find(i => i.cartId === cartId);
+    if (!item) return;
+    const reason = prompt(`Void "${item.name}"?\nEnter reason:`);
+    if (!reason) return;
 
-
-  const handleCancelTransaction = () => {
-    if (cart.length === 0) return alert("Cart is already empty!");
-    const confirm = window.confirm("Cancel entire transaction? This will be logged.");
-    if (!confirm) return;
-
+    setCart(prev => prev.filter(i => i.cartId !== cartId));
     addAuditLog({
-      action: LOG_ACTIONS.CANCEL_TRANSACTION,
-      performedBy: currentUser?.username || 'Unknown',
-      details: { itemCount: cart.length, cartSnapshot: cart }
-    });
-
-    setCart([]);
-    setDiscount(0);
-    setDiscountType("None");
-  };
-
-
-  const initiatePostVoid = (transaction) => {
-    setPostVoidTarget(transaction);
-    setSupervisorPin('');
-    setPinError('');
-    setShowPostVoidModal(true);
-  };
-
-
-  const confirmPostVoid = () => {
-    if (supervisorPin !== SUPERVISOR_PIN) {
-      setPinError('Incorrect PIN. Post-void denied.');
-      return;
-    }
-
-    const updated = completedTransactions.filter(t => t.id !== postVoidTarget.id);
-    setCompletedTransactions(updated);
-    localStorage.setItem('completedTransactions', JSON.stringify(updated));
-
-    addAuditLog({
-      action: LOG_ACTIONS.POST_VOID,
-      performedBy: currentUser?.username || 'Unknown',
-      details: {
-        transactionId: postVoidTarget.id,
-        total: postVoidTarget.total,
-        approvedBy: 'Supervisor (PIN verified)'
-      }
-    });
-
-    setShowPostVoidModal(false);
-    setPostVoidTarget(null);
-    alert('Post-void approved and transaction reversed.');
-  };
-
-
-  const handleReprintReceipt = (transaction) => {
-    const receiptWindow = window.open('', '_blank', 'width=400,height=600');
-    receiptWindow.document.write(`
-      <html>
-        <head><title>Receipt Reprint</title></head>
-        <body style="font-family:monospace; padding:20px;">
-          <h2 style="text-align:center;">SARIPH.POS</h2>
-          <p style="text-align:center;">*** REPRINT ***</p>
-          <hr/>
-          <p>Transaction ID: ${transaction.id}</p>
-          <p>Date: ${new Date(transaction.date).toLocaleString()}</p>
-          <hr/>
-          ${transaction.items.map(i =>
-            `<p>${i.name} — ₱${i.price.toFixed(2)}</p>`
-          ).join('')}
-          <hr/>
-          <div style="display:flex; justify-content:space-between;">
-            <span>Subtotal:</span><span>₱${transaction.subtotal.toFixed(2)}</span>
-          </div>
-          <div style="display:flex; justify-content:space-between; color:red;">
-            <span>${transaction.discountType}:</span><span>-₱${transaction.discountAmount.toFixed(2)}</span>
-          </div>
-          <p><strong>TOTAL: ₱${transaction.total.toFixed(2)}</strong></p>
-          <p style="text-align:center; margin-top:20px;">Thank you!</p>
-        </body>
-      </html>
-    `);
-    receiptWindow.document.close();
-    receiptWindow.print();
-
-    addAuditLog({
-      action: LOG_ACTIONS.REPRINT_RECEIPT,
-      performedBy: currentUser?.username || 'Unknown',
-      details: { transactionId: transaction.id, total: transaction.total }
+      action: LOG_ACTIONS.VOID_ITEM,
+      performedBy: currentUser?.username || 'System',
+      details: `Voided: ${item.name} — ${reason}`,
     });
   };
 
-  const handleCompleteSale = () => {
-    if (cart.length === 0) return alert("Cart is empty!");
+  // Step 1: Show preview receipt
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
     setShowReceipt(true);
   };
 
-  
-  const finalizeTransaction = () => {
-    const newTransaction = {
-      id: Date.now(),
-      items: cart,
+  // Step 2: Confirm & persist
+  const finalizeSale = () => {
+    const txnId = txnCounter.current++;
+    const newTxn = {
+      id: txnId,
+      items: [...cart],
       subtotal,
       total,
-      discountType,
+      discountKey: discountOption.key,
       discountAmount,
-      date: new Date().toISOString()
+      date: new Date().toLocaleString(),
     };
 
-    const updated = [...completedTransactions, newTransaction];
-    setCompletedTransactions(updated);
-    localStorage.setItem('completedTransactions', JSON.stringify(updated));
-    setLastTransaction(newTransaction);
+    // ✅ Persist to localStorage so Dashboard can read it
+    const existing = JSON.parse(localStorage.getItem('completedTransactions') || '[]');
+    localStorage.setItem('completedTransactions', JSON.stringify([...existing, newTxn]));
+    window.dispatchEvent(new Event('storage'));
 
-    alert("Sale Recorded. Printing Receipt...");
+    addAuditLog({
+      action: LOG_ACTIONS.SALE,
+      performedBy: currentUser?.username || 'System',
+      details: `Sale #${txnId} — ₱${total.toFixed(2)}`,
+    });
+
+    setLastTransaction(newTxn);
     setCart([]);
-    setDiscount(0);
-    setDiscountType("None");
+    setDiscountOption(DISCOUNT_OPTIONS[0]);
     setShowReceipt(false);
   };
 
+  // Build preview transaction object
+  const previewTransaction = {
+    id: txnCounter.current,
+    items: cart,
+    subtotal,
+    total,
+    discountKey: discountOption.key,
+    discountAmount,
+    date: new Date().toLocaleString(),
+  };
+
   return (
-    <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', gap: '20px', filter: showReceipt || showPostVoidModal ? 'blur(4px)' : 'none' }}>
-
-        {/* LEFT: INVENTORY */}
-        <div className="card" style={{ flex: 2 }}>
-          <h3>Inventory Selection</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '15px' }}>
-            {products.map(p => (
-              <button key={p.id} className="btn" onClick={() => addToCart(p)}>
-                {p.name} <br /> ₱{p.price.toFixed(2)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT: CART & TOTALS */}
-        <div className="card" style={{ flex: 1 }}>
-          <h3>Current Sale</h3>
-          <div style={{ minHeight: '200px', borderBottom: '1px solid #000', marginBottom: '10px' }}>
-            {cart.map(item => (
-              <div key={item.cartId} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0' }}>
-                <span>{item.name}</span>
-                <span>
-                  ₱{item.price.toFixed(2)}{' '}
-                  <button
-                    onClick={() => voidItem(item.cartId)}
-                    style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}
-                  >
-                    [X]
-                  </button>
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <p>Subtotal: ₱{subtotal.toFixed(2)}</p>
-          <select
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              setDiscount(val);
-              setDiscountType(e.target.options[e.target.selectedIndex].text);
-            }}
-            style={{ margin: '10px 0' }}
-          >
-            <option value="0">No Discount</option>
-            <option value="0.20">Senior Citizen (20%)</option>
-            <option value="0.20">PWD (20%)</option>
-            <option value="0.20">Athlete (20%)</option>
-            <option value="0.10">Solo Parent (10%)</option>
-          </select>
-
-          <h2 style={{ background: '#000', color: '#fff', padding: '10px', textAlign: 'center' }}>
-            ₱{total.toFixed(2)}
-          </h2>
-
-          <button
-            className="btn btn-dark"
-            style={{ width: '100%', marginTop: '10px' }}
-            onClick={handleCompleteSale}
-          >
-            CHECKOUT
-          </button>
-
-          {/* ✅ NEW: Cancel Transaction button */}
-          <button
-            onClick={handleCancelTransaction}
-            style={{
-              width: '100%',
-              marginTop: '8px',
-              padding: '10px',
-              background: '#dc3545',
-              color: '#fff',
-              border: 'none',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              borderRadius: '4px'
-            }}
-          >
-            CANCEL TRANSACTION
-          </button>
+    <div className="pos-root">
+      {/* ── Product Panel ── */}
+      <div className="pos-inventory">
+        <span className="sec-label">Inventory — {activeProducts.length} items</span>
+        <div className="prod-grid">
+          {activeProducts.map(p => (
+            <button
+              key={p.id}
+              className="prod-card"
+              onClick={() => addToCart(p)}
+            >
+              <span className="prod-name">{p.name}</span>
+              <span className="prod-price">₱{Number(p.price).toFixed(2)}</span>
+              <span className="prod-stock">{p.stock} in stock</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ✅ NEW: Recent Transactions (for Post-Void & Reprint) */}
-      {completedTransactions.length > 0 && (
-        <div className="card" style={{ marginTop: '20px' }}>
-          <h3>Recent Transactions</h3>
-          {[...completedTransactions].reverse().slice(0, 5).map(t => (
-            <div
-              key={t.id}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '8px 0',
-                borderBottom: '1px solid #eee'
-              }}
-            >
-              <span style={{ fontSize: '13px' }}>
-                #{t.id} — ₱{t.total.toFixed(2)} — {new Date(t.date).toLocaleString()}
-              </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleReprintReceipt(t)}
-                  style={{
-                    padding: '5px 10px',
-                    background: '#0d6efd',
-                    color: '#fff',
-                    border: 'none',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                >
-                  🖨 Reprint
-                </button>
-                <button
-                  onClick={() => initiatePostVoid(t)}
-                  style={{
-                    padding: '5px 10px',
-                    background: '#dc3545',
-                    color: '#fff',
-                    border: 'none',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                >
-                  🚫 Post-Void
-                </button>
-              </div>
-            </div>
-          ))}
+      {/* ── Cart Panel ── */}
+      <div className="pos-cart">
+        <div className="cart-header">
+          <span className="sec-label" style={{ margin: 0 }}>Current Sale</span>
         </div>
-      )}
 
-      {/* RECEIPT MODAL OVERLAY (unchanged) */}
-      {showReceipt && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          background: 'rgba(0,0,0,0.5)', display: 'flex',
-          justifyContent: 'center', alignItems: 'center', zIndex: 100
-        }}>
-          <div className="card" style={{
-            width: '300px', background: '#fff',
-            padding: '30px', textAlign: 'center',
-            boxShadow: '0 0 20px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ borderBottom: '2px dashed #000', paddingBottom: '5px' }}>SARIPH RECEIPT</h2>
-            <p style={{ fontSize: '12px' }}>{new Date().toLocaleDateString()}</p>
-
-            <div style={{ textAlign: 'left', margin: '20px 0', fontSize: '14px' }}>
-              {cart.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{item.name}</span>
-                  <span>₱{item.price.toFixed(2)}</span>
+        <div className="cart-items-wrap">
+          {cart.length === 0 ? (
+            <div className="cart-empty-state">
+              <div className="cart-empty-icon">
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+              </div>
+              <p>No items yet</p>
+              <p style={{ fontSize: '11px', marginTop: '4px' }}>Click a product to add</p>
+            </div>
+          ) : (
+            cart.map((item, idx) => (
+              <div key={item.cartId} className="cart-item">
+                <div className="ci-num">{idx + 1}</div>
+                <div className="ci-info">
+                  <div className="ci-name">{item.name}</div>
+                  <div className="ci-price">
+                    ₱{item.price.toFixed(2)} × {item.qty} = ₱{(item.price * item.qty).toFixed(2)}
+                  </div>
                 </div>
-              ))}
-              <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #000' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>Subtotal:</span><span>₱{subtotal.toFixed(2)}</span>
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                  <button
+                    className="t-btn"
+                    style={{ padding: '3px 8px', fontSize: '14px' }}
+                    onClick={() => changeQty(item.cartId, -1)}
+                  >−</button>
+                  <button
+                    className="t-btn"
+                    style={{ padding: '3px 8px', fontSize: '14px' }}
+                    onClick={() => changeQty(item.cartId, 1)}
+                  >+</button>
+                  <button className="ci-void" onClick={() => voidItem(item.cartId)}>Void</button>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', color: 'red' }}>
-                <span>{discountType}:</span><span>-₱{discountAmount.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px', marginTop: '10px' }}>
-                <span>TOTAL:</span><span>₱{total.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <button className="btn btn-dark" style={{ width: '100%' }} onClick={finalizeTransaction}>
-              PRINT & CLOSE
-            </button>
-            <button
-              className="btn"
-              style={{ width: '100%', marginTop: '5px', border: 'none' }}
-              onClick={() => setShowReceipt(false)}
-            >
-              Cancel
-            </button>
-          </div>
+            ))
+          )}
         </div>
+
+        <div className="cart-footer">
+          <div className="summary-row">
+            <span>Subtotal</span>
+            <span className="mono">₱{subtotal.toFixed(2)}</span>
+          </div>
+
+          <select
+            className="sp-select"
+            value={DISCOUNT_OPTIONS.indexOf(discountOption)}
+            onChange={e => setDiscountOption(DISCOUNT_OPTIONS[Number(e.target.value)])}
+          >
+            {DISCOUNT_OPTIONS.map((opt, idx) => (
+              <option key={opt.key} value={idx}>{opt.label}</option>
+            ))}
+          </select>
+
+          {discountOption.value > 0 && (
+            <div className="summary-row green">
+              <span>Discount</span>
+              <span className="mono">-₱{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+
+          <div className="total-strip">
+            <span className="ts-label">Total</span>
+            <span className="ts-amount">₱{total.toFixed(2)}</span>
+          </div>
+
+          <button
+            className="btn-checkout"
+            onClick={handleCheckout}
+            disabled={cart.length === 0}
+            style={{ opacity: cart.length === 0 ? 0.5 : 1, cursor: cart.length === 0 ? 'not-allowed' : 'pointer' }}
+          >
+            Checkout
+          </button>
+
+          {lastTransaction && (
+            <button
+              className="btn-cancel"
+              style={{ marginTop: '8px' }}
+              onClick={() => setShowLastReceipt(true)}
+            >
+              Reprint Last Receipt
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Checkout Preview Receipt ── */}
+      {showReceipt && (
+        <Receipt
+          transaction={previewTransaction}
+          onClose={() => setShowReceipt(false)}
+          onConfirm={finalizeSale}
+        />
       )}
 
-      {/* ✅ NEW: POST-VOID SUPERVISOR MODAL */}
-      {showPostVoidModal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }}>
-          <div style={{
-            background: '#fff', padding: '2rem', borderRadius: '10px',
-            width: '90%', maxWidth: '380px', textAlign: 'center',
-            border: '3px solid #000', boxShadow: '8px 8px 0 #000'
-          }}>
-            <h2 style={{ marginBottom: '0.5rem' }}>🔐 Supervisor Approval</h2>
-            <p style={{ marginBottom: '1rem', color: '#555' }}>
-              Post-void requires supervisor PIN.
-            </p>
-            <p style={{ marginBottom: '1rem' }}>
-              Transaction: <strong>#{postVoidTarget?.id}</strong> — ₱{postVoidTarget?.total?.toFixed(2)}
-            </p>
-            <input
-              type="password"
-              placeholder="Enter Supervisor PIN"
-              value={supervisorPin}
-              onChange={(e) => setSupervisorPin(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', fontSize: '1.1rem',
-                border: '2px solid #000', marginBottom: '0.5rem'
-              }}
-            />
-            {pinError && (
-              <p style={{ color: 'red', marginBottom: '0.5rem' }}>{pinError}</p>
-            )}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '0.5rem' }}>
-              <button
-                onClick={confirmPostVoid}
-                style={{
-                  flex: 1, background: '#000', color: '#fff',
-                  padding: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer'
-                }}
-              >
-                Confirm Void
-              </button>
-              <button
-                onClick={() => setShowPostVoidModal(false)}
-                style={{
-                  flex: 1, background: '#ccc', color: '#000',
-                  padding: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ── Reprint Last Receipt ── */}
+      {showLastReceipt && lastTransaction && (
+        <Receipt
+          transaction={lastTransaction}
+          onClose={() => setShowLastReceipt(false)}
+          isReprint
+        />
       )}
     </div>
   );
