@@ -1,60 +1,527 @@
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
 :root {
+  /* Original palette */
   --black: #000000;
   --white: #ffffff;
-  --gray: #f0f0f0; /* Slightly darker gray for better contrast */
+  --gray:  #f0f0f0;
+
+  /* Dashboard extras */
+  --ink:        #0f1117;
+  --ink-light:  #1e2230;
+  --ink-mid:    #2d3348;
+  --muted:      #6b7280;
+  --border:     #e4e7ef;
+  --surface:    #f7f8fc;
+
+  /* Accent */
+  --accent:     #4f6ef7;
+  --accent-dim: #eef1fe;
+  --green:      #22c55e;
+  --green-dim:  #dcfce7;
+  --red:        #ef4444;
+  --red-dim:    #fee2e2;
+  --amber:      #f59e0b;
+
+  /* Layout */
+  --sidebar-w:  240px;
+  --nav-h:      60px;
+  --radius:     10px;
+  --radius-sm:  6px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:  0 4px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.06);
+  --shadow-lg:  0 10px 40px rgba(0,0,0,.12);
+
+  /* Typography */
+  --font:       'DM Sans', sans-serif;
+  --mono:       'DM Mono', monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-/* The wrapper must span the whole screen to center the card */
+html { font-size: 15px; }
+
+body {
+  font-family: var(--font);
+  background-color: var(--surface);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
 .login-screen {
   display: flex;
-  align-items: center;      /* Vertical centering */
-  justify-content: center;   /* Horizontal centering */
-  min-height: 100vh;        /* Full viewport height */
-  background-color: var(--gray);
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
   width: 100%;
+  background-color: var(--gray);
 }
 
 .login-card {
   background: var(--white);
   border: 4px solid var(--black);
   padding: 3rem;
-  width: 90%;               /* Responsive width for mobile */
-  max-width: 400px;         /* Fixed width for desktop */
+  width: 90%;
+  max-width: 400px;
   text-align: center;
-  box-shadow: 12px 12px 0px var(--black); /* Bold Brutalist Shadow */
+  box-shadow: 12px 12px 0px var(--black);
 }
 
-/* Typography & Inputs */
-h1 { 
-  text-transform: uppercase; 
-  font-weight: 900; 
-  margin-bottom: 0.5rem; 
+.login-card h1 {
+  text-transform: uppercase;
+  font-weight: 900;
+  margin-bottom: 1.5rem;
   font-size: 2rem;
 }
 
-select {
+.login-card input {
   width: 100%;
   padding: 12px;
-  border: 2px solid var(--black);
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  background: var(--white);
-  cursor: pointer;
+  border: 2px solid black;
+  font-size: 14px;
+  margin-bottom: 10px;
 }
 
 .btn-enter {
   width: 100%;
-  padding: 15px;
+  padding: 12px;
   background: var(--black);
   color: var(--white);
   border: none;
   font-weight: 800;
   text-transform: uppercase;
   cursor: pointer;
+  margin-top: 10px;
+  font-size: 0.9rem;
 }
 
 .btn-enter:hover {
   background: #333;
 }
+
+/* ============================================================
+   LAYOUT — NAVBAR + SIDEBAR + MAIN
+   ============================================================ */
+
+/* Top navbar */
+.navbar {
+  height: var(--nav-h);
+  background: var(--ink);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.05);
+}
+
+.navbar .logo {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar .logo::before {
+  content: '';
+  display: inline-block;
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.navbar .menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar .menu a {
+  color: rgba(255,255,255,.65);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: .875rem;
+  font-weight: 500;
+  transition: background .15s, color .15s;
+}
+
+.navbar .menu a:hover,
+.navbar .menu a.active {
+  background: rgba(255,255,255,.08);
+  color: var(--white);
+}
+
+/* Role badge next to username */
+.navbar .user-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar .role-pill {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(79,110,247,.25);
+  color: #a5b4fc;
+}
+
+/* Logout button in navbar */
+.btn-logout {
+  background: rgba(239,68,68,.15);
+  border: 1px solid rgba(239,68,68,.3);
+  padding: 6px 14px;
+  color: #fca5a5;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: .82rem;
+  font-weight: 600;
+  letter-spacing: .3px;
+  transition: background .2s, border-color .2s;
+}
+
+.btn-logout:hover {
+  background: rgba(239,68,68,.28);
+  border-color: rgba(239,68,68,.5);
+  color: #fff;
+}
+
+/* Main content wrapper — offset for navbar */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 40px;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  margin-bottom: 18px;
+  color: var(--ink);
+}
+
+/* ============================================================
+   USER INFO CARD
+   ============================================================ */
+.user-info {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info .btn-logout {
+  margin-left: auto;
+}
+
+.user-info .user-avatar {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.user-info .user-details {
+  flex: 1;
+}
+
+.user-info .user-details strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.user-info .user-details span {
+  font-size: .875rem;
+  color: var(--muted);
+}
+
+/* ============================================================
+   PRODUCT SECTION
+   ============================================================ */
+.product-section {
+  margin-bottom: 44px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.add-product-btn {
+  background: var(--accent);
+  color: var(--white);
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .85rem;
+  letter-spacing: .2px;
+  transition: background .2s, box-shadow .2s;
+  box-shadow: 0 2px 8px rgba(79,110,247,.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-product-btn:hover {
+  background: #3a5ae8;
+  box-shadow: 0 4px 14px rgba(79,110,247,.4);
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.table-wrapper {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+th, td {
+  padding: 13px 18px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: var(--ink);
+  color: rgba(255,255,255,.75);
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+td {
+  font-size: .9rem;
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td {
+  background: #f0f4ff;
+}
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+.status-active,
+.status-inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: .3px;
+}
+
+.status-active {
+  background: var(--green-dim);
+  color: #16a34a;
+}
+
+.status-active::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.status-inactive {
+  background: var(--red-dim);
+  color: #dc2626;
+}
+
+.status-inactive::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+/* ============================================================
+   ACTION BUTTONS (in table rows)
+   ============================================================ */
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+/* Ensure status and actions are never in the same cell visually */
+td.status-col {
+  white-space: nowrap;
+  width: 120px;
+}
+
+td.actions-col {
+  white-space: nowrap;
+  width: 180px;
+}
+
+.actions button {
+  padding: 5px 12px;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .2px;
+  transition: filter .15s, transform .1s;
+}
+
+.actions button:active { transform: scale(.96); }
+
+.btn-edit {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.btn-edit:hover { filter: brightness(.93); }
+
+.btn-deactivate {
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+.btn-deactivate:hover { filter: brightness(.93); }
+
+.btn-activate {
+  background: var(--green-dim);
+  color: #16a34a;
+}
+
+.btn-activate:hover { filter: brightness(.93); }
+
+/* ============================================================
+   AUDIT LOGS
+   ============================================================ */
+.audit-logs {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.audit-entry {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+
+.audit-entry:last-child { border-bottom: none; }
+
+.audit-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--accent-dim);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.audit-body { flex: 1; }
+
+.audit-time {
+  font-family: var(--mono);
+  font-size: .75rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.audit-action {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.audit-reason {
+  font-size: .85rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   MISC UTILITIES
+   ============================================================ */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
