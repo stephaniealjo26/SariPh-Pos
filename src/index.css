@@ -282,13 +282,17 @@ body {
   display: flex;
   height: calc(100vh - 56px);
   overflow: hidden;
-  background: var(--bg);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #404040 70%, #1a1a1a 100%);
 }
 .pos-inventory {
   flex: 1;
-  padding: 20px;
+  padding: 20px 24px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(160deg, #eef2ff 0%, #f8faff 60%, #fdf4ff 100%);
 }
 .pos-cart {
   width: 320px;
@@ -625,6 +629,8 @@ body {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #404040 70%, #1a1a1a 100%);
+  min-height: calc(100vh - 56px);
 }
 .stats-row {
   display: grid;
@@ -633,7 +639,8 @@ body {
   margin-bottom: 24px;
 }
 .stat-card {
-  background: var(--bg2);
+  background: #fff;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
 }
@@ -803,7 +810,6 @@ body {
   margin-top: 1px;
 }
 
-/* ── Utility ── */
 .mono {
   font-family: var(--fm);
 }
