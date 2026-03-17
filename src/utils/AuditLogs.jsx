@@ -1,23 +1,28 @@
-// src/utils/AuditLogs.jsx
-
 export const LOG_ACTIONS = {
   VOID_ITEM: 'VOID_ITEM',
   CANCEL_TRANSACTION: 'CANCEL_TRANSACTION',
-  SALE: 'SALE'
+  POST_VOID: 'POST_VOID',
+  REPRINT_RECEIPT: 'REPRINT_RECEIPT',
 };
 
-export const getAuditLogs = () => {
-  const saved = localStorage.getItem('pos_audit_logs');
-  return saved ? JSON.parse(saved) : [];
-};
-
-export const addAuditLog = (entry) => {
+export function addAuditLog({ action, performedBy, details }) {
   const logs = getAuditLogs();
-  const newLog = {
+  const entry = {
     id: Date.now(),
-    time: new Date().toLocaleTimeString(),
-    ...entry
+    action,
+    performedBy,
+    details,
+    timestamp: new Date().toISOString(),
   };
-  localStorage.setItem('pos_audit_logs', JSON.stringify([newLog, ...logs]));
-  window.dispatchEvent(new Event('storage')); // Notifies Dashboard to refresh
-};
+  logs.push(entry);
+  localStorage.setItem('auditLogs', JSON.stringify(logs));
+  return entry;
+}
+
+export function getAuditLogs() {
+  try {
+    return JSON.parse(localStorage.getItem('auditLogs')) || [];
+  } catch {
+    return [];
+  }
+}
