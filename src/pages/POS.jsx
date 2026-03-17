@@ -1,18 +1,15 @@
 import React, { useState, useRef } from 'react';
 import './POS.css';
 
-// ─── AUDIT LOG STORE (shared ref simulation) ────────────────────────────────
 let globalAuditLogs = [];
 export const getAuditLogs = () => globalAuditLogs;
 const pushAuditLog = (entry) => {
   globalAuditLogs = [{ id: Date.now(), time: new Date().toLocaleTimeString(), ...entry }, ...globalAuditLogs];
 };
 
-// ─── COMPLETED TRANSACTIONS STORE ────────────────────────────────────────────
 let completedTransactions = [];
 export const getCompletedTransactions = () => completedTransactions;
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const DISCOUNT_OPTIONS = [
   { label: 'No Discount', value: 0, key: 'None' },
   { label: 'Senior Citizen (20%)', value: 0.20, key: 'Senior Citizen' },
@@ -30,7 +27,7 @@ const INITIAL_PRODUCTS = [
   { id: 6, name: 'Canned Sardines', price: 22, stock: 80, status: 'Active' },
 ];
 
-// ─── RECEIPT COMPONENT ───────────────────────────────────────────────────────
+
 const Receipt = ({ transaction, onClose, isReprint = false }) => {
   if (!transaction) return null;
   return (
@@ -94,7 +91,7 @@ const Receipt = ({ transaction, onClose, isReprint = false }) => {
   );
 };
 
-// ─── POST VOID MODAL ──────────────────────────────────────────────────────────
+
 const PostVoidModal = ({ transactions, onApprove, onClose }) => {
   const [selectedTxn, setSelectedTxn] = useState('');
   const [reason, setReason] = useState('');
@@ -154,7 +151,7 @@ const PostVoidModal = ({ transactions, onApprove, onClose }) => {
   );
 };
 
-// ─── MAIN POS COMPONENT ───────────────────────────────────────────────────────
+// ─── Main POS Components
 const POS = () => {
   const [products] = useState(INITIAL_PRODUCTS);
   const [cart, setCart] = useState([]);
@@ -171,7 +168,7 @@ const POS = () => {
 
   const txnCounter = useRef(1000);
 
-  // ── CART LOGIC ──
+  // ── Cart Logic ──
   const addToCart = (product) => {
     if (product.status !== 'Active') return;
     setCart(prev => [...prev, { ...product, cartId: Date.now() + Math.random() }]);
@@ -191,7 +188,7 @@ const POS = () => {
     });
   };
 
-  // ── DISCOUNT LOGIC ──
+  // ── Discount Logic ──
   const handleDiscountChange = (e) => {
     const chosen = DISCOUNT_OPTIONS[parseInt(e.target.value)];
     if (discountApplied && discountOption.key !== 'None') {
@@ -203,12 +200,12 @@ const POS = () => {
     setDiscountApplied(chosen.key !== 'None');
   };
 
-  // ── TOTALS ──
+  // ── Totals ──
   const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
   const discountAmount = subtotal * discountOption.value;
   const total = subtotal - discountAmount;
 
-  // ── CHECKOUT ──
+  // ── Checkout ──
   const handleCheckout = () => {
     if (cart.length === 0) return alert('Cart is empty!');
     setShowReceipt(true);
@@ -245,7 +242,7 @@ const POS = () => {
     setShowReceipt(false);
   };
 
-  // ── CANCEL SALE ──
+  // ── Sale cancelation ──
   const handleCancelSale = () => {
     if (cart.length === 0) return alert('No active sale to cancel.');
     const confirm = window.confirm('Cancel the entire current sale? This cannot be undone.');
@@ -270,7 +267,7 @@ const POS = () => {
     alert('Sale canceled and logged for audit.');
   };
 
-  // ── REPRINT ──
+  // ── Reprint ──
   const handleReprint = () => {
     if (transactions.length === 0) return alert('No completed transactions to reprint.');
     const last = transactions[transactions.length - 1];
@@ -308,7 +305,7 @@ const POS = () => {
   return (
     <div className="pos-wrapper">
 
-      {/* ── LEFT: PRODUCT GRID ── */}
+      {/* ── LEFT: Product Grid ── */}
       <div className="pos-product-panel">
         <div className="pos-panel-header">
           <span className="pos-panel-title">🛒 Products</span>
@@ -335,7 +332,7 @@ const POS = () => {
         </div>
       </div>
 
-      {/* ── RIGHT: CART & CHECKOUT ── */}
+      {/* ── RIGHT: Cart & Checkout ── */}
       <div className="pos-cart-panel">
         <div className="pos-panel-header">
           <span className="pos-panel-title">📋 Current Sale</span>
@@ -404,7 +401,7 @@ const POS = () => {
         )}
       </div>
 
-      {/* ── CHECKOUT CONFIRM MODAL ── */}
+      {/* ── checkout confirmation ── */}
       {showReceipt && (
         <div className="pos-overlay">
           <div className="pos-modal" style={{ maxWidth: '340px' }}>
@@ -437,7 +434,7 @@ const POS = () => {
         </div>
       )}
 
-      {/* ── RECEIPT VIEWER (Reprint) ── */}
+      {/* ── receipt (Reprint) ── */}
       {viewingReceipt && (
         <Receipt
           transaction={viewingReceipt}
@@ -446,7 +443,7 @@ const POS = () => {
         />
       )}
 
-      {/* ── POST VOID MODAL ── */}
+      {/* void modal */}
       {showPostVoid && (
         <PostVoidModal
           transactions={transactions}
