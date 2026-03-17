@@ -32,6 +32,11 @@ export const AuthProvider = ({ children }) => {
     setUsers([...users, { id: Date.now(), ...newUser }]);
   };
 
+
+  const isSupervisor = () => {
+    return currentUser?.role === 'Administrator' || currentUser?.role === 'Supervisor';
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -39,7 +44,8 @@ export const AuthProvider = ({ children }) => {
         currentUser,
         login,
         logout,
-        addUser
+        addUser,
+        isSupervisor  
       }}
     >
       {children}
