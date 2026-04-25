@@ -1,323 +1,284 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { addAuditLog, LOG_ACTIONS } from "../utils/AuditLogs.jsx";
-import '../index.css';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useProducts } from '../context/ProductContext';
+import { useTransactions, DISCOUNT_TYPES } from '../context/TransactionContext';
+import { useOrder } from '../context/OrderContext';
 
-const DISCOUNT_OPTIONS = [
-  { label: 'No Discount', value: 0, key: 'None' },
-  { label: 'Senior Citizen (20%)', value: 0.20, key: 'Senior Citizen' },
-  { label: 'PWD (20%)', value: 0.20, key: 'PWD' },
-  { label: 'Athlete (20%)', value: 0.20, key: 'Athlete' },
-  { label: 'Solo Parent (10%)', value: 0.10, key: 'Solo Parent' },
-];
+// ── helpers ──────────────────────────────────────────────────────────────────
+const peso = (n) => `₱${Number(n).toFixed(2)}`;
+const genTxId = () => `TX-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+const now = () => new Date().toISOString();
 
-const FALLBACK_PRODUCTS = [
-  { id: 1, name: 'Notebook', price: 25, stock: 50, status: 'Active' },
-  { id: 2, name: 'Ballpen', price: 12, stock: 100, status: 'Active' },
-  { id: 3, name: 'Cooking Oil', price: 55, stock: 15, status: 'Active' },
-  { id: 4, name: 'Sari-Sari Bread', price: 15, stock: 30, status: 'Active' },
-  { id: 5, name: 'Instant Noodles', price: 14, stock: 80, status: 'Active' },
-  { id: 6, name: 'Canned Sardines', price: 22, stock: 45, status: 'Active' },
-];
+const miniBtn = (bg = '#3b82f6') => ({
+  background: bg,
+  color: '#fff',
+  border: 'none',
+  borderRadius: 6,
+  padding: '6px 14px',
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: 'pointer',
+});
 
-// ─── Receipt Sub-Component ───
-const Receipt = ({ transaction, onClose, onConfirm, isReprint = false }) => {
-  if (!transaction) return null;
-  return (
-    <div className="receipt-backdrop">
-      <div className="receipt-modal">
-        <div className="receipt-top">
-          {isReprint && (
-            <div style={{ color: 'gold', textAlign: 'center', fontSize: '11px', marginBottom: '4px', letterSpacing: '2px' }}>
-              ★ REPRINT ★
-            </div>
-          )}
-          <div className="receipt-brand">SARIPH.POS</div>
-          <div className="receipt-date">
-            TXN #{transaction.id} · {transaction.date}
-          </div>
-        </div>
-        <div className="receipt-body">
-          {transaction.items.map((item, idx) => (
-            <div key={idx} className="r-item">
-              <span>{item.name} ×{item.qty}</span>
-              <span>₱{(item.price * item.qty).toFixed(2)}</span>
-            </div>
-          ))}
-          <hr className="r-div" />
-          <div className="r-sub">
-            <span>Subtotal</span>
-            <span>₱{transaction.subtotal.toFixed(2)}</span>
-          </div>
-          {transaction.discountAmount > 0 && (
-            <div className="r-disc">
-              <span>Discount ({transaction.discountKey})</span>
-              <span>-₱{transaction.discountAmount.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="r-total">
-            <span>TOTAL</span>
-            <span>₱{transaction.total.toFixed(2)}</span>
-          </div>
-        </div>
-        <div className="receipt-actions">
-          {onConfirm ? (
-            <>
-              <button className="btn-print" onClick={onConfirm}>Confirm & Complete Sale</button>
-              <button className="btn-cancel" onClick={onClose}>Cancel</button>
-            </>
-          ) : (
-            <button className="btn-print" onClick={onClose}>Close</button>
-          )}
-        </div>
+// ── Row component ─────────────────────────────────────────────────────────────
+const Row = ({ label, value, bold, large, color }) => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '5px 0',
+    borderBottom: '1px solid var(--border)',
+  }}>
+    <span style={{ fontSize: large ? 15 : 13, color: 'var(--ink2)' }}>{label}</span>
+    <span style={{
+      fontSize: large ? 18 : 13,
+      fontWeight: bold ? 800 : 400,
+      color: color ?? 'var(--ink1)',
+    }}>{value}</span>
+  </div>
+);
+
+// ── Receipt component ─────────────────────────────────────────────────────────
+const Receipt = ({ tx, onNew }) => (
+  <div className="dash-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{
+      background: 'white', borderRadius: 12, padding: 32,
+      border: '1px solid var(--border)', width: 360, maxWidth: '100%',
+    }}>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ fontSize: 36 }}>🧾</div>
+        <h2 style={{ margin: '8px 0 4px', fontWeight: 800 }}>SARIPH.POS</h2>
+        <p style={{ color: 'var(--ink3)', fontSize: 12, margin: 0 }}>Official Receipt</p>
       </div>
+
+      <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
+        <div>TX ID: <span style={{ fontFamily: 'monospace' }}>{tx.id}</span></div>
+        <div>Cashier: {tx.cashier}</div>
+        <div>Date: {new Date(tx.createdAt).toLocaleString()}</div>
+      </div>
+
+      <div style={{
+        borderTop: '1px dashed var(--border)',
+        borderBottom: '1px dashed var(--border)',
+        padding: '10px 0', margin: '10px 0',
+      }}>
+        {tx.items.map(item => (
+          <div key={item.id} style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: 13, padding: '3px 0',
+          }}>
+            <span>{item.name} <span style={{ color: 'var(--ink3)' }}>×{item.qty}</span></span>
+            <span>{peso(item.price * item.qty)}</span>
+          </div>
+        ))}
+      </div>
+
+      <Row label="Subtotal" value={peso(tx.subtotal)} />
+      {tx.discountType !== 'NONE' && (
+        <Row label={`Discount (${tx.discountType})`} value={`-${peso(tx.subtotal - tx.total)}`} color="#22c55e" />
+      )}
+      <Row label="TOTAL" value={peso(tx.total)} bold large />
+      <Row label="Tendered" value={peso(tx.tendered)} />
+      <Row label="Change" value={peso(tx.change)} color="#22c55e" bold />
+
+      <button
+        onClick={onNew}
+        style={{ ...miniBtn('#2563eb'), width: '100%', marginTop: 20, padding: 12, fontSize: 14 }}
+      >
+        ✅ New Transaction
+      </button>
     </div>
-  );
-};
+  </div>
+);
 
-// ─── Main POS Component ───
+// ── Main POS Component ────────────────────────────────────────────────────────
 const POS = () => {
-  const { currentUser } = useContext(AuthContext);
-
-  // Read products from localStorage (synced with Dashboard)
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('pos_products');
-    return saved ? JSON.parse(saved) : FALLBACK_PRODUCTS;
-  });
+  const { currentUser } = useAuth();
+  const { deductStock } = useProducts();
+  const { saveTransaction } = useTransactions();
+  const { order, isWaitingForCashier, finalizeCheckout, rejectOrder } = useOrder();
 
   const [cart, setCart] = useState([]);
-  const [discountOption, setDiscountOption] = useState(DISCOUNT_OPTIONS[0]);
-  const [showReceipt, setShowReceipt] = useState(false);
-  const [lastTransaction, setLastTransaction] = useState(null);
-  const [showLastReceipt, setShowLastReceipt] = useState(false);
+  const [discount, setDiscount] = useState('NONE');
+  const [txId] = useState(genTxId);
+  const [view, setView] = useState('pos');
+  const [lastTx, setLastTx] = useState(null);
+  const [amountTendered, setAmountTendered] = useState('');
 
-  const txnCounter = useRef(1000 + Math.floor(Math.random() * 9000));
-
-  // Sync products if Dashboard updates them
+  // Sync cart when order arrives
   useEffect(() => {
-    const syncProducts = () => {
-      const saved = localStorage.getItem('pos_products');
-      if (saved) setProducts(JSON.parse(saved));
-    };
-    window.addEventListener('storage', syncProducts);
-    return () => window.removeEventListener('storage', syncProducts);
-  }, []);
+    if (isWaitingForCashier && order) {
+      setCart(order.items);
+    } else {
+      setCart([]);
+    }
+  }, [isWaitingForCashier, order]);
 
-  // Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const discountAmount = subtotal * discountOption.value;
-  const total = subtotal - discountAmount;
+  // ── Totals ──────────────────────────────────────────────────────────────────
+  const subtotal   = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const discRate   = DISCOUNT_TYPES[discount]?.rate ?? 0;
+  const discAmount = subtotal * discRate;
+  const total      = subtotal - discAmount;
+  const tendered   = parseFloat(amountTendered) || 0;
+  const change     = tendered - total;
 
-  const activeProducts = products.filter(p => p.status === 'Active');
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+  const handleCompleteSale = () => {
+    if (cart.length === 0 || tendered < total) return;
 
-  const addToCart = (p) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.id === p.id);
-      if (existing) return prev.map(i => i.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { ...p, qty: 1, cartId: Date.now() }];
-    });
-  };
-
-  const changeQty = (cartId, delta) => {
-    setCart(prev =>
-      prev
-        .map(i => i.cartId === cartId ? { ...i, qty: i.qty + delta } : i)
-        .filter(i => i.qty > 0)
-    );
-  };
-
-  const voidItem = (cartId) => {
-    const item = cart.find(i => i.cartId === cartId);
-    if (!item) return;
-    const reason = prompt(`Void "${item.name}"?\nEnter reason:`);
-    if (!reason) return;
-
-    setCart(prev => prev.filter(i => i.cartId !== cartId));
-    addAuditLog({
-      action: LOG_ACTIONS.VOID_ITEM,
-      performedBy: currentUser?.username || 'System',
-      details: `Voided: ${item.name} — ${reason}`,
-    });
-  };
-
-  // Step 1: Show preview receipt
-  const handleCheckout = () => {
-    if (cart.length === 0) return;
-    setShowReceipt(true);
-  };
-
-  // Step 2: Confirm & persist
-  const finalizeSale = () => {
-    const txnId = txnCounter.current++;
-    const newTxn = {
-      id: txnId,
-      items: [...cart],
+    const tx = {
+      id: txId,
+      cashier: currentUser.username,
+      createdAt: now(),
+      items: cart,
       subtotal,
+      discountType: discount,
+      discountAmount: discAmount,
       total,
-      discountKey: discountOption.key,
-      discountAmount,
-      date: new Date().toLocaleString(),
+      tendered,
+      change,
+      status: 'COMPLETED',
     };
 
-    // ✅ Persist to localStorage so Dashboard can read it
-    const existing = JSON.parse(localStorage.getItem('completedTransactions') || '[]');
-    localStorage.setItem('completedTransactions', JSON.stringify([...existing, newTxn]));
-    window.dispatchEvent(new Event('storage'));
+    deductStock(cart);
+    saveTransaction(tx);
+    setLastTx(tx);
+    finalizeCheckout();
+    setView('receipt');
+  };
 
-    addAuditLog({
-      action: LOG_ACTIONS.SALE,
-      performedBy: currentUser?.username || 'System',
-      details: `Sale #${txnId} — ₱${total.toFixed(2)}`,
-    });
-
-    setLastTransaction(newTxn);
+  const handleCancelOrder = () => {
+    rejectOrder();
     setCart([]);
-    setDiscountOption(DISCOUNT_OPTIONS[0]);
-    setShowReceipt(false);
   };
 
-  // Build preview transaction object
-  const previewTransaction = {
-    id: txnCounter.current,
-    items: cart,
-    subtotal,
-    total,
-    discountKey: discountOption.key,
-    discountAmount,
-    date: new Date().toLocaleString(),
-  };
+  // ── Idle screen (no order yet) ────────────────────────────────────────────────
+  if (!isWaitingForCashier && view === 'pos') {
+    return (
+      <div className="dash-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div style={{
+          textAlign: 'center', background: 'white', padding: 40,
+          borderRadius: 12, border: '1px solid var(--border)',
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ fontWeight: 700, color: 'var(--ink1)' }}>Waiting for Customer</h2>
+          <p style={{ color: 'var(--ink3)', fontSize: 14 }}>
+            The cashier terminal is idle. Items will appear here <br />
+            once the user clicks "Send to Cashier".
+          </p>
+          {['Administrator', 'Manager'].includes(currentUser.role) && (
+            <button style={{ ...miniBtn('#dc2626'), marginTop: 20 }} onClick={() => setView('postvoid')}>
+              🚫 Access Post-Void Tools
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
+  // ── Receipt screen ────────────────────────────────────────────────────────────
+  if (view === 'receipt' && lastTx) {
+    return (
+      <Receipt
+        tx={lastTx}
+        onNew={() => { setView('pos'); setAmountTendered(''); }}
+      />
+    );
+  }
+
+  // ── Active POS screen ─────────────────────────────────────────────────────────
   return (
-    <div className="pos-root">
-      {/* ── Product Panel ── */}
-      <div className="pos-inventory">
-        <span className="sec-label">Inventory — {activeProducts.length} items</span>
-        <div className="prod-grid">
-          {activeProducts.map(p => (
-            <button
-              key={p.id}
-              className="prod-card"
-              onClick={() => addToCart(p)}
-            >
-              <span className="prod-name">{p.name}</span>
-              <span className="prod-price">₱{Number(p.price).toFixed(2)}</span>
-              <span className="prod-stock">{p.stock} in stock</span>
-            </button>
-          ))}
+    <div className="dash-body" style={{ padding: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{
+        padding: '10px 20px', borderBottom: '1px solid var(--border)',
+        background: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div style={{ fontWeight: 700 }}>
+          📋 Reviewing Order: <span style={{ color: 'var(--accent)' }}>{order?.user}</span>
         </div>
+        <button style={miniBtn('#dc2626')} onClick={handleCancelOrder}>Reject / Return to User</button>
       </div>
 
-      {/* ── Cart Panel ── */}
-      <div className="pos-cart">
-        <div className="cart-header">
-          <span className="sec-label" style={{ margin: 0 }}>Current Sale</span>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* LEFT — Item list */}
+        <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 15 }}>ITEMS SENT BY USER</h3>
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cart.map(item => (
+                <tr key={item.id}>
+                  <td>{item.name}</td>
+                  <td>{peso(item.price)}</td>
+                  <td>{item.qty}</td>
+                  <td style={{ textAlign: 'right' }}>{peso(item.price * item.qty)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div className="cart-items-wrap">
-          {cart.length === 0 ? (
-            <div className="cart-empty-state">
-              <div className="cart-empty-icon">
-                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                </svg>
-              </div>
-              <p>No items yet</p>
-              <p style={{ fontSize: '11px', marginTop: '4px' }}>Click a product to add</p>
-            </div>
-          ) : (
-            cart.map((item, idx) => (
-              <div key={item.cartId} className="cart-item">
-                <div className="ci-num">{idx + 1}</div>
-                <div className="ci-info">
-                  <div className="ci-name">{item.name}</div>
-                  <div className="ci-price">
-                    ₱{item.price.toFixed(2)} × {item.qty} = ₱{(item.price * item.qty).toFixed(2)}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
-                  <button
-                    className="t-btn"
-                    style={{ padding: '3px 8px', fontSize: '14px' }}
-                    onClick={() => changeQty(item.cartId, -1)}
-                  >−</button>
-                  <button
-                    className="t-btn"
-                    style={{ padding: '3px 8px', fontSize: '14px' }}
-                    onClick={() => changeQty(item.cartId, 1)}
-                  >+</button>
-                  <button className="ci-void" onClick={() => voidItem(item.cartId)}>Void</button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        {/* RIGHT — Checkout panel */}
+        <div style={{
+          width: 360, borderLeft: '1px solid var(--border)',
+          background: 'var(--surface)', display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{ padding: 20, flex: 1 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 15 }}>CHECKOUT</h3>
+            <Row label="Subtotal" value={peso(subtotal)} />
 
-        <div className="cart-footer">
-          <div className="summary-row">
-            <span>Subtotal</span>
-            <span className="mono">₱{subtotal.toFixed(2)}</span>
-          </div>
-
-          <select
-            className="sp-select"
-            value={DISCOUNT_OPTIONS.indexOf(discountOption)}
-            onChange={e => setDiscountOption(DISCOUNT_OPTIONS[Number(e.target.value)])}
-          >
-            {DISCOUNT_OPTIONS.map((opt, idx) => (
-              <option key={opt.key} value={idx}>{opt.label}</option>
-            ))}
-          </select>
-
-          {discountOption.value > 0 && (
-            <div className="summary-row green">
-              <span>Discount</span>
-              <span className="mono">-₱{discountAmount.toFixed(2)}</span>
-            </div>
-          )}
-
-          <div className="total-strip">
-            <span className="ts-label">Total</span>
-            <span className="ts-amount">₱{total.toFixed(2)}</span>
-          </div>
-
-          <button
-            className="btn-checkout"
-            onClick={handleCheckout}
-            disabled={cart.length === 0}
-            style={{ opacity: cart.length === 0 ? 0.5 : 1, cursor: cart.length === 0 ? 'not-allowed' : 'pointer' }}
-          >
-            Checkout
-          </button>
-
-          {lastTransaction && (
-            <button
-              className="btn-cancel"
-              style={{ marginTop: '8px' }}
-              onClick={() => setShowLastReceipt(true)}
+            <select
+              className="sp-select"
+              value={discount}
+              onChange={e => setDiscount(e.target.value)}
+              style={{ width: '100%', margin: '10px 0' }}
             >
-              Reprint Last Receipt
+              {Object.entries(DISCOUNT_TYPES).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+
+            {discAmount > 0 && (
+              <Row label={`Discount (${discount})`} value={`-${peso(discAmount)}`} color="#22c55e" />
+            )}
+            <Row label="TOTAL" value={peso(total)} bold large />
+
+            <div style={{ marginTop: 20 }}>
+              <label className="db-label">AMOUNT TENDERED</label>
+              <input
+                className="db-input"
+                type="number"
+                value={amountTendered}
+                onChange={e => setAmountTendered(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+              />
+              {tendered >= total && tendered > 0 && (
+                <Row label="Change" value={peso(change)} color="#22c55e" bold />
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: 20, borderTop: '1px solid var(--border)' }}>
+            <button
+              className="db-btn-primary"
+              style={{ width: '100%', padding: 15 }}
+              disabled={cart.length === 0 || tendered < total}
+              onClick={handleCompleteSale}
+            >
+              Complete Transaction
             </button>
-          )}
+          </div>
         </div>
       </div>
-
-      {/* ── Checkout Preview Receipt ── */}
-      {showReceipt && (
-        <Receipt
-          transaction={previewTransaction}
-          onClose={() => setShowReceipt(false)}
-          onConfirm={finalizeSale}
-        />
-      )}
-
-      {/* ── Reprint Last Receipt ── */}
-      {showLastReceipt && lastTransaction && (
-        <Receipt
-          transaction={lastTransaction}
-          onClose={() => setShowLastReceipt(false)}
-          isReprint
-        />
-      )}
     </div>
   );
 };
