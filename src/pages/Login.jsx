@@ -20,31 +20,27 @@ const Login = () => {
       return;
     }
     setLoading(true);
-    // Small delay for UX feel
     setTimeout(() => {
-      const { success, message, role } = (() => {
-        const result = login(username, password);
-        return result;
-      })();
+      const result = login(username, password);
       setLoading(false);
-      if (success) {
-        // Get role from returned user via auth context — re-read from storage
-        const session = JSON.parse(localStorage.getItem('sariph_session') || 'null');
-        const home = session ? (ROLE_HOME[session.role] ?? '/pos') : '/pos';
+      if (result.success) {
+        const home = ROLE_HOME[result.role] ?? '/pos';
         navigate(home, { replace: true });
       } else {
-        setError(message);
+        setError(result.message);
       }
     }, 300);
   };
 
-  const handleKey = (e) => { if (e.key === 'Enter') handleLogin(); };
+  // ✅ handleKey defined here — triggers login on Enter key
+  const handleKey = (e) => {
+    if (e.key === 'Enter') handleLogin();
+  };
 
   return (
     <div className="login-screen">
       <div className="login-card">
 
-        {/* Avatar */}
         <div className="login-avatar">
           <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" width="36" height="36">
             <path strokeLinecap="round" strokeLinejoin="round"
@@ -55,7 +51,6 @@ const Login = () => {
         <h1>SARIPH.POS</h1>
         <p>Secure Terminal Access</p>
 
-        {/* Error */}
         {error && (
           <div style={{
             background: 'var(--red-bg, #fff0f0)',
@@ -71,7 +66,6 @@ const Login = () => {
           </div>
         )}
 
-        {/* Username */}
         <label>Username</label>
         <div className="input-icon-wrap">
           <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" width="15" height="15">
@@ -88,7 +82,6 @@ const Login = () => {
           />
         </div>
 
-        {/* Password */}
         <label>Password</label>
         <div className="input-icon-wrap" style={{ position: 'relative' }}>
           <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" width="15" height="15">
@@ -103,7 +96,6 @@ const Login = () => {
             onKeyDown={handleKey}
             style={{ paddingRight: '36px' }}
           />
-          {/* Show/hide toggle */}
           <button
             type="button"
             onClick={() => setShowPass(s => !s)}
@@ -114,7 +106,6 @@ const Login = () => {
               color: 'var(--ink3, #999)',
             }}
             tabIndex={-1}
-            title={showPass ? 'Hide password' : 'Show password'}
           >
             {showPass ? (
               <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" width="15" height="15">

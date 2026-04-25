@@ -6,6 +6,43 @@ html, body, #root { height: 100%; }
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+.login-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--gray);
+}
+
+.login-card {
+  background: var(--white);
+  border: 4px solid var(--black);
+  padding: 3rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 12px 12px 0px var(--black);
+}
+
+.login-card h1 {
+  text-transform: uppercase;
+  font-weight: 900;
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid black;
   font-size: 14px;
   line-height: 1.5;
   background: var(--bg);
@@ -93,6 +130,7 @@ body {
   align-items: center;
   gap: 4px;
 }
+
 .navbar .menu a {
   color: var(--ink2);
   padding: 7px 16px;
@@ -103,6 +141,7 @@ body {
   text-decoration: none;
   letter-spacing: .1px;
 }
+
 .navbar .menu a:hover,
 .navbar .menu a.active {
   background: var(--brand-light);
@@ -114,6 +153,7 @@ body {
   align-items: center;
   gap: 10px;
 }
+
 .navbar .role-pill {
   font-size: 11px;
   font-weight: 700;
@@ -125,6 +165,8 @@ body {
   text-transform: uppercase;
   border: 1px solid var(--brand-mid);
 }
+
+/* Logout button in navbar */
 .btn-logout {
   padding: 7px 16px;
   background: var(--surface);
@@ -137,6 +179,7 @@ body {
   font-family: var(--f);
   transition: all .15s;
 }
+
 .btn-logout:hover {
   background: var(--red-bg);
   border-color: #fca5a5;
@@ -504,6 +547,7 @@ body {
   border-radius: var(--radius);
   padding: 16px 18px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   align-items: center;
   margin: 8px 0 12px;
@@ -1165,5 +1209,5 @@ body {
 .mono { font-family: var(--fm); }
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
