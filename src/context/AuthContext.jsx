@@ -69,7 +69,15 @@ export const AuthProvider = ({ children }) => {
     }
     const user = { id: Date.now(), ...newUser, username: trimmed };
     setUsers(prev => [...prev, user]);
-    return { success: true, message: '' };
+    return { success: true, message: '', user };
+  };
+
+  const register = (newUser) => {
+    const result = addUser(newUser);
+    if (!result.success) return result;
+    const { password, ...safeUser } = result.user;
+    setCurrentUser(safeUser);
+    return { success: true, message: '', role: result.user.role, user: result.user };
   };
 
   const editUser = (id, updates) => {
@@ -103,7 +111,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       users, currentUser,
       login, logout,
-      addUser, editUser, deleteUser,
+      addUser, register, editUser, deleteUser,
       hasRole, isAdmin, isManager,
       ROLES,
     }}>

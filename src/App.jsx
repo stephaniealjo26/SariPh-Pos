@@ -6,6 +6,7 @@ import { TransactionProvider } from './context/TransactionContext';
 import { OrderProvider } from './context/OrderContext';
 
 import Login from './pages/Login.jsx';
+import Signup from './pages/Signup.jsx';
 import POS from './pages/POS.jsx';
 import UserShop from './pages/UserShop.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -119,6 +120,7 @@ function AppRoutes() {
     return (
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -161,6 +163,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }/>
 
+        <Route path="/signup" element={<Navigate to={homeRoute} replace />} />
         <Route path="*" element={<Navigate to={homeRoute} replace />} />
       </Routes>
     </AppLayout>
