@@ -39,24 +39,27 @@ const Row = ({ label, value, bold, large, color }) => (
 );
 
 // ── Receipt component ─────────────────────────────────────────────────────────
-const Receipt = ({ tx, onNew }) => (
+const Receipt = ({ tx, onNew, onReprint, onMarkDone, markedDone }) => (
   <div className="dash-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <div style={{
       background: 'white', borderRadius: 12, padding: 32,
-      border: '1px solid var(--border)', width: 360, maxWidth: '100%',
+      border: '1px solid var(--border)', width: 400, maxWidth: '100%',
     }}>
+      {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 36 }}>🧾</div>
         <h2 style={{ margin: '8px 0 4px', fontWeight: 800 }}>SARIPH.POS</h2>
         <p style={{ color: 'var(--ink3)', fontSize: 12, margin: 0 }}>Official Receipt</p>
       </div>
 
+      {/* TX Info */}
       <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
         <div>TX ID: <span style={{ fontFamily: 'monospace' }}>{tx.id}</span></div>
         <div>Cashier: {tx.cashier}</div>
         <div>Date: {new Date(tx.createdAt).toLocaleString()}</div>
       </div>
 
+      {/* Items */}
       <div style={{
         borderTop: '1px dashed var(--border)',
         borderBottom: '1px dashed var(--border)',
@@ -73,6 +76,7 @@ const Receipt = ({ tx, onNew }) => (
         ))}
       </div>
 
+      {/* Totals */}
       <Row label="Subtotal" value={peso(tx.subtotal)} />
       {tx.discountType !== 'NONE' && (
         <Row label={`Discount (${tx.discountType})`} value={`-${peso(tx.subtotal - tx.total)}`} color="#22c55e" />
@@ -81,12 +85,84 @@ const Receipt = ({ tx, onNew }) => (
       <Row label="Tendered" value={peso(tx.tendered)} />
       <Row label="Change" value={peso(tx.change)} color="#22c55e" bold />
 
-      <button
-        onClick={onNew}
-        style={{ ...miniBtn('#2563eb'), width: '100%', marginTop: 20, padding: 12, fontSize: 14 }}
+      {/* ── Mark as Done checkbox ── */}
+      <div style={{
+        marginTop: 20,
+        padding: '12px 14px',
+        borderRadius: 8,
+        background: markedDone ? '#dcfce7' : '#f9fafb',
+        border: `1px solid ${markedDone ? '#86efac' : 'var(--border)'}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        cursor: markedDone ? 'default' : 'pointer',
+        transition: 'all 0.2s',
+      }}
+        onClick={() => !markedDone && onMarkDone()}
       >
-        ✅ New Transaction
-      </button>
+        <div style={{
+          width: 20, height: 20, borderRadius: 5,
+          border: `2px solid ${markedDone ? '#22c55e' : '#d1d5db'}`,
+          background: markedDone ? '#22c55e' : 'white',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, transition: 'all 0.2s',
+        }}>
+          {markedDone && (
+            <svg width="12" height="12" fill="none" stroke="white" strokeWidth="2.5" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: markedDone ? '#166534' : 'var(--ink1)' }}>
+            {markedDone ? '✅ Transaction Marked as Done' : 'Mark transaction as done'}
+          </div>
+          <div style={{ fontSize: 11, color: markedDone ? '#166534' : 'var(--ink3)', marginTop: 1 }}>
+            {markedDone
+              ? 'Reprinting is now disabled for this transaction.'
+              : 'Check this once the customer has paid and left.'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+        {/* Reprint button — disabled if marked done */}
+        <button
+          onClick={!markedDone ? onReprint : undefined}
+          disabled={markedDone}
+          style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13,
+            fontWeight: 600, cursor: markedDone ? 'not-allowed' : 'pointer',
+            border: `1px solid ${markedDone ? '#e5e7eb' : '#d1d5db'}`,
+            background: markedDone ? '#f3f4f6' : 'white',
+            color: markedDone ? '#9ca3af' : 'var(--ink2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            transition: 'all 0.2s',
+          }}
+          title={markedDone ? 'Cannot reprint — transaction is marked as done' : 'Reprint receipt'}
+        >
+          🖨️ {markedDone ? 'Reprint Disabled (Marked Done)' : 'Reprint Receipt'}
+        </button>
+
+        {/* New transaction button */}
+        <button
+          onClick={onNew}
+          style={{ ...miniBtn('#2563eb'), width: '100%', padding: 12, fontSize: 14 }}
+        >
+          ✅ New Transaction
+        </button>
+      </div>
+
+      {/* Reprint blocked notice */}
+      {markedDone && (
+        <p style={{
+          textAlign: 'center', fontSize: 11, color: '#9ca3af',
+          marginTop: 10, fontStyle: 'italic',
+        }}>
+          🔒 This transaction is closed. No further reprints allowed.
+        </p>
+      )}
     </div>
   </div>
 );
@@ -95,7 +171,7 @@ const Receipt = ({ tx, onNew }) => (
 const POS = () => {
   const { currentUser } = useAuth();
   const { deductStock } = useProducts();
-  const { saveTransaction } = useTransactions();
+  const { saveTransaction, logReprint } = useTransactions();
   const { order, isWaitingForCashier, finalizeCheckout, rejectOrder } = useOrder();
 
   const [cart, setCart] = useState([]);
@@ -104,6 +180,7 @@ const POS = () => {
   const [view, setView] = useState('pos');
   const [lastTx, setLastTx] = useState(null);
   const [amountTendered, setAmountTendered] = useState('');
+  const [markedDone, setMarkedDone] = useState(false);
 
   // Sync cart when order arrives
   useEffect(() => {
@@ -143,6 +220,7 @@ const POS = () => {
     deductStock(cart);
     saveTransaction(tx);
     setLastTx(tx);
+    setMarkedDone(false); // reset for new receipt
     finalizeCheckout();
     setView('receipt');
   };
@@ -150,6 +228,24 @@ const POS = () => {
   const handleCancelOrder = () => {
     rejectOrder();
     setCart([]);
+  };
+
+  const handleMarkDone = () => {
+    setMarkedDone(true);
+  };
+
+  const handleReprint = () => {
+    if (!markedDone && lastTx) {
+      logReprint(lastTx.id, currentUser.username);
+      // In a real system, this would trigger a print dialog
+      window.print();
+    }
+  };
+
+  const handleNewTransaction = () => {
+    setView('pos');
+    setAmountTendered('');
+    setMarkedDone(false);
   };
 
   // ── Idle screen (no order yet) ────────────────────────────────────────────────
@@ -181,7 +277,10 @@ const POS = () => {
     return (
       <Receipt
         tx={lastTx}
-        onNew={() => { setView('pos'); setAmountTendered(''); }}
+        markedDone={markedDone}
+        onMarkDone={handleMarkDone}
+        onReprint={handleReprint}
+        onNew={handleNewTransaction}
       />
     );
   }
