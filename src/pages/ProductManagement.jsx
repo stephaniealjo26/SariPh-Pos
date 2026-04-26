@@ -179,13 +179,13 @@ const ProductManagement = () => {
               </td></tr>
             )}
             {filtered.map((p, i) => (
-              <tr key={p.id} style={{ opacity: p.active ? 1 : 0.5 }}>
-                <td className="mono" style={{ color: 'var(--ink3)' }}>{i + 1}</td>
-                <td className="mono" style={{ fontSize: 11 }}>{p.barcode}</td>
-                <td className="td-name">{p.name}</td>
-                <td style={{ fontSize: 12, color: 'var(--ink2)' }}>{p.category}</td>
-                <td style={{ fontWeight: 600 }}>₱{p.price.toFixed(2)}</td>
-                <td>
+              <tr key={p.id}>
+                <td className="mono" style={{ color: 'var(--ink3)', opacity: p.active ? 1 : 0.4 }}>{i + 1}</td>
+                <td className="mono" style={{ fontSize: 11, opacity: p.active ? 1 : 0.4 }}>{p.barcode}</td>
+                <td className="td-name" style={{ opacity: p.active ? 1 : 0.4 }}>{p.name}</td>
+                <td style={{ fontSize: 12, color: 'var(--ink2)', opacity: p.active ? 1 : 0.4 }}>{p.category}</td>
+                <td style={{ fontWeight: 600, opacity: p.active ? 1 : 0.4 }}>₱{p.price.toFixed(2)}</td>
+                <td style={{ opacity: p.active ? 1 : 0.4 }}>
                   <span style={{
                     fontWeight: 600,
                     color: p.stock === 0 ? '#ef4444' : p.stock <= 5 ? '#f59e0b' : 'var(--ink1)',
@@ -195,7 +195,7 @@ const ProductManagement = () => {
                     {p.stock > 0 && p.stock <= 5 && <span style={{ fontSize: 10, marginLeft: 4 }}>LOW</span>}
                   </span>
                 </td>
-                <td>
+                <td style={{ opacity: p.active ? 1 : 0.4 }}>
                   <span style={{
                     fontSize: 11, padding: '3px 8px', borderRadius: 99, fontWeight: 600,
                     background: p.active ? '#dcfce7' : '#fee2e2',

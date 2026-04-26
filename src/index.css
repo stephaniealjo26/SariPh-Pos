@@ -129,6 +129,37 @@ a {
   z-index: 10;
 }
 
+/* Horizontal navbar nav in header */
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.navbar-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.navbar-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.navbar-link.active {
+  background: rgba(37, 99, 235, 0.15);
+  color: #fff;
+}
+
 .logo {
   font-size: 18px;
   font-weight: 800;
@@ -332,7 +363,7 @@ a {
   box-shadow: 0 0 0 3px rgba(139, 92, 246, .12), 0 2px 8px rgba(139, 92, 246, .08);
 }
 
-.login-card input:focus ~ svg {
+.login-card input:focus~svg {
   color: var(--brand);
 }
 
@@ -569,7 +600,7 @@ a {
   color: black;
 }
 
-.auth-field input:focus ~ svg {
+.auth-field input:focus~svg {
   color: var(--brand);
 }
 
@@ -1184,7 +1215,7 @@ a {
 /* Table */
 .btn-add {
   padding: 7px 16px;
-  background: var(--brand);
+  background: #2563eb;
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -1194,6 +1225,10 @@ a {
   font-family: var(--f);
   transition: background .15s;
   letter-spacing: .2px;
+}
+
+.btn-add:hover {
+  background: #1d4ed8;
 }
 
 .btn-add:hover {
@@ -1689,6 +1724,19 @@ a {
 .bdg-blue {
   background: var(--blue-bg);
   color: var(--blue-text);
+}
+
+/* ── Responsive Navbar: hide horizontal nav on small screens ── */
+@media (max-width: 900px) {
+  .navbar-nav {
+    display: none !important;
+  }
+}
+
+@media (min-width: 901px) {
+  .navbar-nav {
+    display: flex !important;
+  }
 }
 
 /* ── Remove old navbar (kept for reference, override) ── */

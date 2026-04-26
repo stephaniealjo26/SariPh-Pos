@@ -38,8 +38,8 @@ header {
   margin-bottom: 20px;
 }
 
-/* Buttons */
-button {
+/* Buttons - only .btn class, so custom buttons are not overridden */
+.btn {
   background-color: #0d6efd;
   color: #fff;
   border: none;
@@ -50,7 +50,7 @@ button {
   transition: all 0.2s ease-in-out;
 }
 
-button:hover {
+.btn:hover {
   background-color: #0b5ed7;
   transform: scale(1.05);
 }
@@ -132,7 +132,7 @@ footer {
     padding: 15px;
   }
 
-  button {
+  .btn {
     padding: 10px 20px;
   }
 }
