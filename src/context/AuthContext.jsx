@@ -1,6 +1,5 @@
 import { createContext, useState, useContext, useEffect } from "react";
 
-// ✅ FIX: export the context itself
 export const AuthContext = createContext();
 
 const ROLES = ['Administrator', 'Manager', 'Cashier', 'Stock Clerk', 'User'];
@@ -16,8 +15,8 @@ const DEFAULT_USERS = [
 export const ROLE_HOME = {
   Administrator: '/dashboard',
   Manager:       '/dashboard',
-  Cashier:       '/pos',
-  'Stock Clerk': '/pos',
+  Cashier:       '/cashier-dashboard',
+  'Stock Clerk': '/cashier-dashboard',
   User:          '/shop',
 };
 
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, [currentUser]);
 
-  // ✅ FIX: single clean login function that returns { success, message, role }
   const login = (username, password) => {
     const trimmed = username.trim();
     const user = users.find(
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }) => {
   const isAdmin   = () => hasRole('Administrator');
   const isManager = () => hasRole('Administrator', 'Manager');
 
-  // ✅ FIX: single Provider, all values included, no undefined references
   return (
     <AuthContext.Provider value={{
       users, currentUser,
