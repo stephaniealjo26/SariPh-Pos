@@ -14,7 +14,7 @@ const DEFAULT_PRODUCTS = [
     stock: 10,
     category: "Beverages",
     active: true,
-    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97"
+    image: "/products/coca-cola.png"
   },
   {
     id: 2,
@@ -24,7 +24,7 @@ const DEFAULT_PRODUCTS = [
     stock: 20,
     category: "Noodles",
     active: true,
-    image: "https://i.pinimg.com/736x/ab/9d/7d/ab9d7dea34462312a43999973d82f268.jpg"
+    image: "/products/pancit canton.webp"
   },
   {
     id: 3,
@@ -34,7 +34,7 @@ const DEFAULT_PRODUCTS = [
     stock: 25,
     category: "Snacks",
     active: true,
-    image: "https://i.pinimg.com/736x/bb/f6/fe/bbf6fe76c7d40774b8dc32057b032380.jpg"
+    image: "/products/rebisco-crackers.jpg"
   },
   {
     id: 4,
@@ -44,7 +44,7 @@ const DEFAULT_PRODUCTS = [
     stock: 12,
     category: "Dairy",
     active: true,
-    image: "https://www.nestle.com.ph/sites/g/files/pydnoa451/files/bear-brand-sterilized-milk.png"
+    image: "/products/bear brand.jpg"
   },
   {
     id: 5,
@@ -54,7 +54,7 @@ const DEFAULT_PRODUCTS = [
     stock: 18,
     category: "Personal Care",
     active: true,
-    image: "https://i.pinimg.com/736x/a3/28/b0/a328b04226f60624e39646fb90bfc39d.jpg"
+    image: "/products/Safeguard Soap.png"
   },
   {
     id: 6,
@@ -64,7 +64,7 @@ const DEFAULT_PRODUCTS = [
     stock: 30,
     category: "Household",
     active: true,
-    image: "https://m.media-amazon.com/images/I/71uJZQz5QdL.jpg"
+    image: "/products/Ariel Powder.png"
   },
   {
     id: 7,
@@ -74,7 +74,7 @@ const DEFAULT_PRODUCTS = [
     stock: 22,
     category: "Snacks",
     active: true,
-    image: "https://cdn.shopify.com/s/files/1/0555/0976/1775/products/skyflakes-crackers-250g.jpg"
+    image: "/products/Sky Flakes.png"
   },
   {
     id: 8,
@@ -84,7 +84,7 @@ const DEFAULT_PRODUCTS = [
     stock: 40,
     category: "Beverages",
     active: true,
-    image: "https://www.coca-cola.com/content/dam/onexp/global/central/coke-company-logo.png"
+    image: "/products/Sprite.png"
   },
   {
     id: 9,
@@ -94,7 +94,7 @@ const DEFAULT_PRODUCTS = [
     stock: 15,
     category: "Dairy",
     active: true,
-    image: "https://www.mondelezinternational.com/-/media/mondelezinternational/product-images/philippines/eden-cheese.png"
+    image: "/products/Eden Cheese.jpg"
   },
   {
     id: 10,
@@ -104,7 +104,7 @@ const DEFAULT_PRODUCTS = [
     stock: 50,
     category: "Beverages",
     active: true,
-    image: "https://www.nestle.com.ph/sites/g/files/pydnoa451/files/milo-powder.png"
+    image: "/products/Milo sachet.jpg"
   }
 ];
 
@@ -201,6 +201,18 @@ export const ProductProvider = ({ children }) => {
     );
   };
 
+  // DEDUCT STOCK ON CHECKOUT
+  const deductStock = (items) => {
+    setProducts(prev =>
+      prev.map(p => {
+        const cartItem = items.find(i => i.id === p.id);
+        return cartItem
+          ? { ...p, stock: Math.max(0, p.stock - cartItem.qty) }
+          : p;
+      })
+    );
+  };
+
   const activeProducts = products.filter(p => p.active);
 
   return (
@@ -210,6 +222,7 @@ export const ProductProvider = ({ children }) => {
       addProduct,
       editProduct,
       toggleProduct,
+      deductStock,
     }}>
       {children}
     </ProductContext.Provider>

@@ -141,6 +141,7 @@ const Receipt = ({ tx, onNew, onReprint, onMarkDone, markedDone }) => (
   </div>
 );
 
+
 // ── Main POS Component ────────────────────────────────────────────────────────
 const POS = () => {
   const { currentUser } = useAuth();
@@ -174,7 +175,17 @@ const POS = () => {
   const change = tendered - total;
 
   const handleCompleteSale = () => {
-    if (cart.length === 0 || tendered < total) return;
+    console.log('Complete Sale Triggered', { cart: cart.length, total, tendered });
+    
+    if (cart.length === 0) {
+      console.warn('Cart is empty');
+      return;
+    }
+    
+    if (tendered < total) {
+      console.warn('Insufficient payment', { tendered, total });
+      return;
+    }
 
     const tx = {
       id: currentTxId,
@@ -220,6 +231,14 @@ const POS = () => {
     setAmountTendered('');
     setMarkedDone(false);
     setCurrentTxId(genTxId()); // Ensure next transaction gets a brand new ID
+  };
+
+  const handleReprintLastTransaction = () => {
+    if (lastTransaction && lastTransaction.status !== 'VOIDED') {
+      setLastTx(lastTransaction);
+      setMarkedDone(lastTransaction.status === 'MARKED_DONE' || false);
+      setView('receipt');
+    }
   };
 
   if (!isWaitingForCashier && view === 'pos') {

@@ -111,3 +111,72 @@ input, textarea {
     background: white !important;
   }
 }
+
+/* ── PRINT STYLES ─────────────────────────────────────────────────────────── */
+@media print {
+  /* Hide everything except receipt */
+  body * {
+    display: none !important;
+  }
+
+  /* Show only the receipt */
+  .dash-body,
+  .dash-body > div {
+    display: flex !important;
+    display: -webkit-flex !important;
+    align-items: center !important;
+    -webkit-align-items: center !important;
+    justify-content: center !important;
+    -webkit-justify-content: center !important;
+    min-height: 100vh !important;
+  }
+
+  /* Receipt container */
+  .dash-body > div > div {
+    display: block !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    padding: 10mm !important;
+    background: white !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Text styling for print */
+  h1, h2, h3, p, div, span {
+    display: block !important;
+    color: #000 !important;
+  }
+
+  /* Table styling */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: none !important;
+    padding: 2mm 0 !important;
+    text-align: left !important;
+  }
+
+  /* Buttons hidden on print */
+  button {
+    display: none !important;
+  }
+
+  /* Links should display as normal text */
+  a {
+    text-decoration: none !important;
+    color: #000 !important;
+  }
+
+  /* No margins/padding for print */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+}
