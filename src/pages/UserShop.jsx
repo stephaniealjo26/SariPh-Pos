@@ -4,25 +4,25 @@ import { useProducts } from '../context/ProductContext';
 import { useOrder } from '../context/OrderContext';
 
 const peso = (n) => `₱${Number(n).toFixed(2)}`;
+const FALLBACK_IMAGE = "https://dummyimage.com/300x300/e0e0e0/000000.png&text=No+Image";
 
 const UserShop = () => {
   const { currentUser } = useAuth();
   const { activeProducts = [] } = useProducts();
-  const {
-    order,
-    isWaitingForCashier,
-    orderItemCount,
-    orderSubtotal,
-    startOrder,
-    addItem,
-    removeItem,
-    updateQty,
-    sendToCashier,
-    cancelOrder,
-  } = useOrder();
+  const { order, isWaitingForCashier, orderItemCount, orderSubtotal, startOrder, addItem, removeItem, updateQty, sendToCashier, cancelOrder } = useOrder();
 
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
+
+  // --- BRANDING COLORS ---
+  const colors = {
+    primary: '#7c4dff', // The vibrant purple from your login button
+    background: '#1a122e', // The dark purple/black background
+    surface: '#ffffff',
+    border: '#e0e0e0',
+    textMain: '#2d2d2d',
+    textMuted: '#757575'
+  };
 
   const categories = useMemo(() => {
     const cats = [...new Set(activeProducts.map(p => p.category))].sort();
@@ -31,152 +31,122 @@ const UserShop = () => {
 
   const filtered = useMemo(() => {
     return activeProducts.filter(p => {
-      const matchSearch =
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.barcode.includes(search);
+      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
       const matchCat = category === 'All' || p.category === category;
       return matchSearch && matchCat;
     });
   }, [activeProducts, search, category]);
 
-  // ✅ FIX: Check if order exists BEFORE calling startOrder,
-  // and do it in one atomic step using setOrder-style logic
   const handleAddItem = (product) => {
-    if (!order) {
-      startOrder(currentUser?.username || 'Guest');
-    }
-    // Use setTimeout(0) so startOrder state update settles before addItem reads it
+    if (!order) startOrder(currentUser?.username || 'Guest');
     setTimeout(() => addItem(product), 0);
   };
 
   const cartItem = (id) => order?.items?.find(i => i.id === id);
 
-  // ── Waiting screen (order sent to cashier) ────────────────────────────────
   if (isWaitingForCashier) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', minHeight: '80vh', gap: 24, padding: 32,
-      }}>
-        <div style={{
-          width: 72, height: 72, borderRadius: '50%', background: '#dcfce7',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
-        }}>✓</div>
-
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 700 }}>Order sent to cashier!</h2>
-          <p style={{ color: 'var(--ink3)', fontSize: 14 }}>
-            Please proceed to the counter. The cashier is reviewing your basket.
-          </p>
-        </div>
-
-        <div style={{
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: 20, width: '100%', maxWidth: 400,
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: 12, fontSize: 14 }}>Summary of items</div>
-          {order?.items?.map(item => (
-            <div key={item.id} style={{
-              display: 'flex', justifyContent: 'space-between',
-              padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13,
-            }}>
-              <span>{item.name} <span style={{ color: 'var(--ink3)' }}>×{item.qty}</span></span>
-              <span style={{ fontWeight: 600 }}>{peso(item.price * item.qty)}</span>
-            </div>
-          ))}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            paddingTop: 12, fontWeight: 700, fontSize: 15,
-          }}>
-            <span>Total to Pay</span>
-            <span style={{ color: 'var(--accent)' }}>{peso(orderSubtotal)}</span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink3)', fontSize: 12 }}>
-          <span className="pulse-dot" />
-          Awaiting Cashier Action...
-        </div>
-        <style>{`
-          .pulse-dot {
-            display: inline-block; width: 8px; height: 8px;
-            border-radius: 50%; background: #22c55e;
-            animation: pulse 1.5s ease-in-out infinite;
-          }
-          @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-        `}</style>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: 24, padding: 32, background: colors.background, color: '#fff' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>✓</div>
+        <h2>Order sent to cashier!</h2>
+        <p>Please proceed to the counter.</p>
       </div>
     );
   }
 
-  // ── Main shop view ────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      {/* LEFT — Product grid */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-        <input
-          className="db-input"
-          placeholder="🔍 Search products..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f8f9fd', fontFamily: 'Inter, sans-serif' }}>
+      
+      {/* MAIN SHOPPING AREA */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        
+        {/* TOP SEARCH BAR */}
+        <input 
+          className="db-input" 
+          placeholder="🔍 Search products..." 
+          value={search} 
+          onChange={e => setSearch(e.target.value)} 
+          style={{
+            width: '100%',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            border: `1px solid ${colors.border}`,
+            fontSize: '16px',
+            marginBottom: '20px',
+            outline: 'none',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+          }}
         />
 
-        {/* Category filters */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '16px 0' }}>
+        {/* CATEGORY FILTER - Updated to Primary Purple */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '24px' }}>
           {categories.map(cat => (
-            <button key={cat} onClick={() => setCategory(cat)} style={{
-              padding: '5px 14px', borderRadius: 99, fontSize: 12, border: 'none',
-              background: category === cat ? 'var(--accent)' : 'var(--surface)',
-              color: category === cat ? '#fff' : 'var(--ink2)',
-              cursor: 'pointer',
-            }}>{cat}</button>
+            <button 
+              key={cat} 
+              onClick={() => setCategory(cat)} 
+              style={{ 
+                padding: '8px 18px', 
+                borderRadius: 99, 
+                border: 'none', 
+                background: category === cat ? colors.primary : '#fff', 
+                color: category === cat ? '#fff' : colors.textMain, 
+                cursor: 'pointer', 
+                fontSize: '13px',
+                fontWeight: 600,
+                boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
+                transition: '0.2s'
+              }}
+            >
+              {cat}
+            </button>
           ))}
         </div>
 
-        {/* Product cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-          gap: 12,
-        }}>
-          {filtered.length === 0 && (
-            <p style={{ color: 'var(--ink3)', gridColumn: '1/-1' }}>No products found.</p>
-          )}
+        {/* PRODUCTS GRID */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 20 }}>
           {filtered.map(product => {
             const inCart = cartItem(product.id);
             return (
-              <div key={product.id} style={{
-                background: 'var(--surface)', borderRadius: 12, padding: 14,
-                border: inCart ? '2px solid var(--accent)' : '1px solid var(--border)',
+              <div key={product.id} style={{ 
+                background: colors.surface, 
+                borderRadius: 16, 
+                padding: 16, 
+                boxShadow: inCart ? `0 0 0 2px ${colors.primary}` : '0 4px 15px rgba(0,0,0,0.05)',
+                transition: '0.3s transform',
+                position: 'relative'
               }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{product.name}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', marginBottom: 4 }}>{product.category}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', margin: '8px 0' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--accent)' }}>{peso(product.price)}</span>
-                  <span style={{ fontSize: 10, color: 'var(--ink3)' }}>Stock: {product.stock}</span>
+                <div style={{ width: '100%', height: 130, background: '#f5f5f5', borderRadius: 12, overflow: 'hidden', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img
+                        src={product.image || FALLBACK_IMAGE}
+                        alt={product.name}
+                        onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_IMAGE; }}
+                        style={{ maxWidth: '90%', maxHeight: '90%', objectFit: 'contain' }}
+                    />
+                </div>
+
+                <div style={{ fontWeight: 700, fontSize: 15, color: colors.textMain }}>{product.name}</div>
+                <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 8 }}>{product.category}</div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontWeight: 800, color: colors.primary, fontSize: 18 }}>{peso(product.price)}</span>
+                  <span style={{ fontSize: 11, color: colors.textMuted }}>Stock: {product.stock}</span>
                 </div>
 
                 {inCart ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-                    <button
-                      onClick={() => updateQty(product.id, inCart.qty - 1, product.stock)}
-                      style={qtyBtn}
-                    >−</button>
-                    <span style={{ fontWeight: 700 }}>{inCart.qty}</span>
-                    <button
-                      onClick={() => updateQty(product.id, inCart.qty + 1, product.stock)}
-                      style={qtyBtn}
-                      disabled={inCart.qty >= product.stock}
-                    >+</button>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0ebff', padding: '6px', borderRadius: '8px' }}>
+                    <button onClick={() => updateQty(product.id, inCart.qty - 1, product.stock)} style={qtyBtn}>−</button>
+                    <span style={{ fontWeight: 700, color: colors.primary }}>{inCart.qty}</span>
+                    <button onClick={() => updateQty(product.id, inCart.qty + 1, product.stock)} style={qtyBtn} disabled={inCart.qty >= product.stock}>+</button>
                   </div>
                 ) : (
-                  <button
-                    disabled={product.stock === 0}
-                    onClick={() => handleAddItem(product)}
-                    style={{
-                      ...addBtn,
-                      opacity: product.stock === 0 ? 0.5 : 1,
-                      cursor: product.stock === 0 ? 'not-allowed' : 'pointer',
+                  <button 
+                    onClick={() => handleAddItem(product)} 
+                    disabled={product.stock === 0} 
+                    style={{ 
+                      ...addBtn, 
+                      background: colors.primary,
+                      opacity: product.stock === 0 ? 0.5 : 1, 
+                      cursor: product.stock === 0 ? 'not-allowed' : 'pointer' 
                     }}
                   >
                     {product.stock === 0 ? 'Out of Stock' : '+ Add to basket'}
@@ -188,47 +158,51 @@ const UserShop = () => {
         </div>
       </div>
 
-      {/* RIGHT — Basket */}
-      <div style={{
-        width: 320, borderLeft: '1px solid var(--border)',
-        background: 'var(--surface)', display: 'flex', flexDirection: 'column',
+      {/* RIGHT SIDEBAR - CART (Styled to match the Login sidebar) */}
+      <div style={{ 
+        width: 360, 
+        background: colors.background, 
+        color: '#fff',
+        display: 'flex', 
+        flexDirection: 'column',
+        boxShadow: '-4px 0 20px rgba(0,0,0,0.1)'
       }}>
-        <div style={{ padding: 16, borderBottom: '1px solid var(--border)', fontWeight: 700 }}>
-          🛒 My Basket ({orderItemCount})
+        <div style={{ padding: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: '20px', fontWeight: 700 }}>
+          🛒 My Basket <span style={{ fontSize: 14, fontWeight: 400, opacity: 0.7 }}>({orderItemCount} items)</span>
         </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: 10 }}>
-          {!order || order?.items?.length === 0 ? (
-            <p style={{ textAlign: 'center', color: 'var(--ink3)', marginTop: 40 }}>
-              Your basket is empty
-            </p>
+        
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+          {!order?.items?.length ? (
+            <div style={{ textAlign: 'center', marginTop: '40px', opacity: 0.5 }}>
+                <p>Your basket is empty</p>
+            </div>
           ) : (
             order.items.map(item => (
-              <div key={item.id} style={{
-                display: 'flex', justifyContent: 'space-between',
-                padding: '8px 0', borderBottom: '1px solid var(--bg)',
-              }}>
-                <div style={{ fontSize: 12 }}>
-                  <div style={{ fontWeight: 600 }}>{item.name}</div>
-                  <div style={{ color: 'var(--ink3)' }}>{item.qty} × {peso(item.price)}</div>
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '14px' }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{item.qty} × {peso(item.price)}</div>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}
-                >✕</button>
+                <button onClick={() => removeItem(item.id)} style={{ border: 'none', background: 'rgba(255,0,0,0.1)', color: '#ff6b6b', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}>✕</button>
               </div>
             ))
           )}
         </div>
 
         {orderItemCount > 0 && (
-          <div style={{ padding: 16, borderTop: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
-              <span style={{ color: 'var(--ink2)' }}>Total</span>
-              <span style={{ fontWeight: 800, fontSize: 18 }}>{peso(orderSubtotal)}</span>
+          <div style={{ padding: '24px', background: 'rgba(255,255,255,0.03)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+              <span style={{ fontSize: '16px', opacity: 0.8 }}>Total Amount</span>
+              <strong style={{ fontSize: '22px', color: colors.primary }}>{peso(orderSubtotal)}</strong>
             </div>
-            <button onClick={sendToCashier} style={sendBtn}>✓ Send to Cashier</button>
-            <button onClick={cancelOrder} style={clearBtn}>Clear Basket</button>
+            
+            <button onClick={sendToCashier} style={{ ...sendBtn, background: colors.primary }}>
+              ✓ Send to Cashier
+            </button>
+            
+            <button onClick={cancelOrder} style={{ ...clearBtn, color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}>
+              Clear Basket
+            </button>
           </div>
         )}
       </div>
@@ -236,29 +210,52 @@ const UserShop = () => {
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-const qtyBtn = {
-  width: 28, height: 28, borderRadius: 6,
-  border: '1px solid var(--border)', cursor: 'pointer',
-  background: 'var(--surface)', fontWeight: 700,
+// --- UPDATED STYLES ---
+const qtyBtn = { 
+  width: 32, 
+  height: 32, 
+  borderRadius: 8, 
+  border: 'none', 
+  background: '#fff', 
+  color: '#7c4dff',
+  fontWeight: 700,
+  cursor: 'pointer',
+  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
 };
 
-const addBtn = {
-  width: '100%', padding: '7px', borderRadius: 8,
-  border: 'none', background: 'var(--accent)',
-  color: '#fff', fontWeight: 700,
+const addBtn = { 
+  width: '100%', 
+  padding: '12px', 
+  borderRadius: 10, 
+  border: 'none', 
+  color: '#fff', 
+  fontWeight: 700,
+  fontSize: '14px',
+  transition: '0.2s'
 };
 
-const sendBtn = {
-  width: '100%', padding: 12, borderRadius: 10,
-  background: '#22c55e', border: 'none',
-  color: '#fff', fontWeight: 700, cursor: 'pointer', marginBottom: 8,
+const sendBtn = { 
+  width: '100%', 
+  padding: '16px', 
+  borderRadius: 12, 
+  border: 'none', 
+  color: '#fff', 
+  fontWeight: 700, 
+  fontSize: '16px',
+  cursor: 'pointer',
+  marginBottom: 10,
+  boxShadow: '0 4px 15px rgba(124, 77, 255, 0.3)'
 };
 
-const clearBtn = {
-  width: '100%', padding: 12, borderRadius: 10,
-  background: 'transparent', border: '1px solid var(--border)',
-  color: 'var(--ink2)', fontWeight: 700, cursor: 'pointer',
+const clearBtn = { 
+  width: '100%', 
+  padding: '12px', 
+  borderRadius: 12, 
+  background: 'transparent', 
+  border: '1px solid', 
+  fontWeight: 600,
+  cursor: 'pointer',
+  fontSize: '14px'
 };
 
 export default UserShop;

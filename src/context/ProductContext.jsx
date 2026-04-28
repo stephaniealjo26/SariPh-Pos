@@ -2,106 +2,214 @@ import { createContext, useState, useContext, useEffect } from "react";
 
 export const ProductContext = createContext();
 
+const DEFAULT_IMAGE =
+  "https://via.placeholder.com/150?text=No+Image";
+
 const DEFAULT_PRODUCTS = [
-  { id: 1, name: "Coca-Cola 500ml",      barcode: "4800888117560", price: 35,  stock: 100, active: true, category: "Beverages" },
-  { id: 2, name: "Lucky Me Pancit",       barcode: "4800016150016", price: 14,  stock: 200, active: true, category: "Noodles" },
-  { id: 3, name: "Rebisco Crackers",      barcode: "4800016120019", price: 22,  stock: 80,  active: true, category: "Snacks" },
-  { id: 4, name: "Bear Brand Milk 300g",  barcode: "4800062410012", price: 58,  stock: 60,  active: true, category: "Dairy" },
-  { id: 5, name: "Safeguard Soap 135g",   barcode: "4902430153003", price: 45,  stock: 120, active: true, category: "Personal Care" },
-  { id: 6, name: "Ariel Powder 66g",      barcode: "4902430501507", price: 12,  stock: 150, active: true, category: "Household" },
-  { id: 7, name: "Sky Flakes 250g",       barcode: "4800016880016", price: 38,  stock: 90,  active: true, category: "Snacks" },
-  { id: 8, name: "Sprite 500ml",          barcode: "4800888130569", price: 33,  stock: 95,  active: true, category: "Beverages" },
-  { id: 9, name: "Eden Cheese 165g",      barcode: "4800895000015", price: 72,  stock: 45,  active: true, category: "Dairy" },
-  { id: 10, name: "Milo 22g Sachet",      barcode: "4800361113017", price: 8,   stock: 300, active: true, category: "Beverages" },
+  {
+    id: 1,
+    name: "Coca-Cola",
+    barcode: "0001",
+    price: 20,
+    stock: 10,
+    category: "Beverages",
+    active: true,
+    image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97"
+  },
+  {
+    id: 2,
+    name: "Lucky Me Pancit",
+    barcode: "0002",
+    price: 15,
+    stock: 20,
+    category: "Noodles",
+    active: true,
+    image: "https://i.pinimg.com/736x/ab/9d/7d/ab9d7dea34462312a43999973d82f268.jpg"
+  },
+  {
+    id: 3,
+    name: "Rebisco Crackers",
+    barcode: "0003",
+    price: 12,
+    stock: 25,
+    category: "Snacks",
+    active: true,
+    image: "https://i.pinimg.com/736x/bb/f6/fe/bbf6fe76c7d40774b8dc32057b032380.jpg"
+  },
+  {
+    id: 4,
+    name: "Bear Brand Milk 300g",
+    barcode: "0004",
+    price: 55,
+    stock: 12,
+    category: "Dairy",
+    active: true,
+    image: "https://www.nestle.com.ph/sites/g/files/pydnoa451/files/bear-brand-sterilized-milk.png"
+  },
+  {
+    id: 5,
+    name: "Safeguard Soap 135g",
+    barcode: "0005",
+    price: 35,
+    stock: 18,
+    category: "Personal Care",
+    active: true,
+    image: "https://i.pinimg.com/736x/a3/28/b0/a328b04226f60624e39646fb90bfc39d.jpg"
+  },
+  {
+    id: 6,
+    name: "Ariel Powder 66g",
+    barcode: "0006",
+    price: 18,
+    stock: 30,
+    category: "Household",
+    active: true,
+    image: "https://m.media-amazon.com/images/I/71uJZQz5QdL.jpg"
+  },
+  {
+    id: 7,
+    name: "Sky Flakes 250g",
+    barcode: "0007",
+    price: 28,
+    stock: 22,
+    category: "Snacks",
+    active: true,
+    image: "https://cdn.shopify.com/s/files/1/0555/0976/1775/products/skyflakes-crackers-250g.jpg"
+  },
+  {
+    id: 8,
+    name: "Sprite 500ml",
+    barcode: "0008",
+    price: 20,
+    stock: 40,
+    category: "Beverages",
+    active: true,
+    image: "https://www.coca-cola.com/content/dam/onexp/global/central/coke-company-logo.png"
+  },
+  {
+    id: 9,
+    name: "Eden Cheese 165g",
+    barcode: "0009",
+    price: 45,
+    stock: 15,
+    category: "Dairy",
+    active: true,
+    image: "https://www.mondelezinternational.com/-/media/mondelezinternational/product-images/philippines/eden-cheese.png"
+  },
+  {
+    id: 10,
+    name: "Milo 22g Sachet",
+    barcode: "0010",
+    price: 10,
+    stock: 50,
+    category: "Beverages",
+    active: true,
+    image: "https://www.nestle.com.ph/sites/g/files/pydnoa451/files/milo-powder.png"
+  }
 ];
 
 export const ProductProvider = ({ children }) => {
-  const [products, setProducts] = useState(() => {
+
+  const getSafeProducts = () => {
+    const safeDefaults = DEFAULT_PRODUCTS.map(p => ({
+      ...p,
+      image: p.image || DEFAULT_IMAGE,
+    }));
+
     try {
       const saved = localStorage.getItem("sariph_products");
-      return saved ? JSON.parse(saved) : DEFAULT_PRODUCTS;
-    } catch { return DEFAULT_PRODUCTS; }
-  });
+
+      if (!saved) return safeDefaults;
+
+      const parsed = JSON.parse(saved);
+
+      const cleaned = parsed.map(p => ({
+        ...p,
+        image: p.image || DEFAULT_IMAGE,
+      }));
+
+      return cleaned.length ? cleaned : safeDefaults;
+
+    } catch {
+      return safeDefaults;
+    }
+  };
+
+  const [products, setProducts] = useState(getSafeProducts);
 
   useEffect(() => {
-    localStorage.setItem("sariph_products", JSON.stringify(products));
+    const cleaned = products.map(p => ({
+      ...p,
+      image: p.image || DEFAULT_IMAGE,
+    }));
+
+    localStorage.setItem("sariph_products", JSON.stringify(cleaned));
   }, [products]);
 
-  // ADD
+  // ADD PRODUCT
   const addProduct = (data) => {
     const trimmed = data.barcode.trim();
-    if (products.find(p => p.barcode === trimmed))
-      return { success: false, message: `Barcode "${trimmed}" already exists.` };
-    if (!data.name.trim())
-      return { success: false, message: "Product name is required." };
-    if (isNaN(data.price) || Number(data.price) <= 0)
-      return { success: false, message: "Price must be greater than 0." };
-    if (isNaN(data.stock) || Number(data.stock) < 0)
-      return { success: false, message: "Stock cannot be negative." };
 
-    setProducts(prev => [...prev, {
-      id: Date.now(),
-      name: data.name.trim(),
-      barcode: trimmed,
-      price: parseFloat(data.price),
-      stock: parseInt(data.stock),
-      category: data.category?.trim() || "General",
-      active: true,
-    }]);
+    if (products.find(p => p.barcode === trimmed))
+      return { success: false, message: "Barcode already exists." };
+
+    setProducts(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: data.name.trim(),
+        barcode: trimmed,
+        price: parseFloat(data.price),
+        stock: parseInt(data.stock),
+        category: data.category || "General",
+        active: true,
+        image: data.image || DEFAULT_IMAGE,
+      }
+    ]);
+
     return { success: true };
   };
 
-  // EDIT
+  // EDIT PRODUCT
   const editProduct = (id, data) => {
     const trimmed = data.barcode.trim();
-    if (products.find(p => p.barcode === trimmed && p.id !== id))
-      return { success: false, message: `Barcode "${trimmed}" already exists.` };
-    if (!data.name.trim())
-      return { success: false, message: "Product name is required." };
-    if (isNaN(data.price) || Number(data.price) <= 0)
-      return { success: false, message: "Price must be greater than 0." };
-    if (isNaN(data.stock) || Number(data.stock) < 0)
-      return { success: false, message: "Stock cannot be negative." };
 
-    setProducts(prev => prev.map(p => p.id === id ? {
-      ...p,
-      name: data.name.trim(),
-      barcode: trimmed,
-      price: parseFloat(data.price),
-      stock: parseInt(data.stock),
-      category: data.category?.trim() || p.category,
-    } : p));
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === id
+          ? {
+              ...p,
+              name: data.name.trim(),
+              barcode: trimmed,
+              price: parseFloat(data.price),
+              stock: parseInt(data.stock),
+              category: data.category || p.category,
+              image: data.image || p.image || DEFAULT_IMAGE,
+            }
+          : p
+      )
+    );
+
     return { success: true };
   };
 
-  // DEACTIVATE / REACTIVATE
   const toggleProduct = (id) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p));
-  };
-
-  // REDUCE STOCK after sale
-  const deductStock = (cartItems) => {
-    setProducts(prev => prev.map(p => {
-      const item = cartItems.find(c => c.id === p.id);
-      return item ? { ...p, stock: Math.max(0, p.stock - item.qty) } : p;
-    }));
-  };
-
-  // RESTORE STOCK on void/cancel
-  const restoreStock = (cartItems) => {
-    setProducts(prev => prev.map(p => {
-      const item = cartItems.find(c => c.id === p.id);
-      return item ? { ...p, stock: p.stock + item.qty } : p;
-    }));
+    setProducts(prev =>
+      prev.map(p =>
+        p.id === id ? { ...p, active: !p.active } : p
+      )
+    );
   };
 
   const activeProducts = products.filter(p => p.active);
 
   return (
     <ProductContext.Provider value={{
-      products, activeProducts,
-      addProduct, editProduct, toggleProduct,
-      deductStock, restoreStock,
+      products,
+      activeProducts,
+      addProduct,
+      editProduct,
+      toggleProduct,
     }}>
       {children}
     </ProductContext.Provider>
