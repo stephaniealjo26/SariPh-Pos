@@ -39,18 +39,40 @@ const Row = ({ label, value, bold, large, color }) => (
 );
 
 // ── Receipt component ─────────────────────────────────────────────────────────
-const Receipt = ({ tx, onNew, onReprint, onMarkDone, markedDone }) => (
-  <div className="dash-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{
-      background: 'white', borderRadius: 12, padding: 32,
-      border: '1px solid var(--border)', width: 400, maxWidth: '100%',
-    }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <div style={{ fontSize: 36 }}>🧾</div>
-        <h2 style={{ margin: '8px 0 4px', fontWeight: 800 }}>SARIPH.POS</h2>
-        <p style={{ color: 'var(--ink3)', fontSize: 12, margin: 0 }}>Official Receipt</p>
-      </div>
+const Receipt = ({ tx, onNew, onReprint, onMarkDone, markedDone }) => {
+  const isReprint = (tx.reprints || 0) > 0;
+  
+  return (
+    <div className="dash-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{
+        background: 'white', borderRadius: 12, padding: 32,
+        border: '1px solid var(--border)', width: 400, maxWidth: '100%',
+      }}>
+        {/* REPRINT Badge */}
+        {isReprint && (
+          <div style={{
+            background: '#fef3c7',
+            border: '2px solid #f59e0b',
+            color: '#92400e',
+            padding: '8px 12px',
+            borderRadius: 6,
+            textAlign: 'center',
+            fontSize: 12,
+            fontWeight: 700,
+            marginBottom: 16,
+          }}>
+            🔁 REPRINT #{tx.reprints}
+          </div>
+        )}
+
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 36 }}>🧾</div>
+          <h2 style={{ margin: '8px 0 4px', fontWeight: 800 }}>SARIPH.POS</h2>
+          <p style={{ color: 'var(--ink3)', fontSize: 12, margin: 0 }}>
+            {isReprint ? 'REPRINT - Official Receipt' : 'Official Receipt'}
+          </p>
+        </div>
 
       {/* TX Info */}
       <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
@@ -166,12 +188,13 @@ const Receipt = ({ tx, onNew, onReprint, onMarkDone, markedDone }) => (
     </div>
   </div>
 );
+}
 
 // ── Main POS Component ────────────────────────────────────────────────────────
 const POS = () => {
   const { currentUser } = useAuth();
   const { deductStock } = useProducts();
-  const { saveTransaction, logReprint } = useTransactions();
+  const { saveTransaction, logReprint, lastTransaction, markTransactionDone } = useTransactions();
   const { order, isWaitingForCashier, finalizeCheckout, rejectOrder } = useOrder();
 
   const [cart, setCart] = useState([]);
@@ -201,7 +224,17 @@ const POS = () => {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleCompleteSale = () => {
-    if (cart.length === 0 || tendered < total) return;
+    console.log('Complete Sale Triggered', { cart: cart.length, total, tendered });
+    
+    if (cart.length === 0) {
+      console.warn('Cart is empty');
+      return;
+    }
+    
+    if (tendered < total) {
+      console.warn('Insufficient payment', { tendered, total });
+      return;
+    }
 
     const tx = {
       id: txId,
@@ -217,6 +250,7 @@ const POS = () => {
       status: 'COMPLETED',
     };
 
+    console.log('Saving transaction:', tx);
     deductStock(cart);
     saveTransaction(tx);
     setLastTx(tx);
@@ -232,13 +266,16 @@ const POS = () => {
 
   const handleMarkDone = () => {
     setMarkedDone(true);
+    if (lastTx) {
+      markTransactionDone(lastTx.id, currentUser.username);
+    }
   };
 
   const handleReprint = () => {
     if (!markedDone && lastTx) {
       logReprint(lastTx.id, currentUser.username);
-      // In a real system, this would trigger a print dialog
-      window.print();
+      // Trigger print dialog with short delay
+      setTimeout(() => window.print(), 100);
     }
   };
 
@@ -246,6 +283,14 @@ const POS = () => {
     setView('pos');
     setAmountTendered('');
     setMarkedDone(false);
+  };
+
+  const handleReprintLastTransaction = () => {
+    if (lastTransaction && lastTransaction.status !== 'VOIDED') {
+      setLastTx(lastTransaction);
+      setMarkedDone(lastTransaction.status === 'MARKED_DONE' || false);
+      setView('receipt');
+    }
   };
 
   // ── Idle screen (no order yet) ────────────────────────────────────────────────
@@ -258,12 +303,24 @@ const POS = () => {
         }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
           <h2 style={{ fontWeight: 700, color: 'var(--ink1)' }}>Waiting for Customer</h2>
-          <p style={{ color: 'var(--ink3)', fontSize: 14 }}>
+          <p style={{ color: 'var(--ink3)', fontSize: 14, marginBottom: 20 }}>
             The cashier terminal is idle. Items will appear here <br />
             once the user clicks "Send to Cashier".
           </p>
+
+          {/* Reprint Last Transaction */}
+          {lastTransaction && lastTransaction.status !== 'VOIDED' && (
+            <button
+              style={{ ...miniBtn('#16a34a'), marginBottom: 12 }}
+              onClick={handleReprintLastTransaction}
+              title={`Reprint TX-${lastTransaction.id.substring(0, 12)}... (₱${Number(lastTransaction.total).toFixed(2)})`}
+            >
+              🖨️ Reprint Last Receipt
+            </button>
+          )}
+
           {['Administrator', 'Manager'].includes(currentUser.role) && (
-            <button style={{ ...miniBtn('#dc2626'), marginTop: 20 }} onClick={() => setView('postvoid')}>
+            <button style={{ ...miniBtn('#dc2626'), marginTop: 12 }} onClick={() => setView('postvoid')}>
               🚫 Access Post-Void Tools
             </button>
           )}
@@ -359,8 +416,10 @@ const POS = () => {
                 onChange={e => setAmountTendered(e.target.value)}
                 placeholder="0.00"
                 autoFocus
+                step="0.01"
+                min="0"
               />
-              {tendered >= total && tendered > 0 && (
+              {tendered > 0 && tendered >= total && (
                 <Row label="Change" value={peso(change)} color="#22c55e" bold />
               )}
             </div>
@@ -370,10 +429,11 @@ const POS = () => {
             <button
               className="db-btn-primary"
               style={{ width: '100%', padding: 15 }}
-              disabled={cart.length === 0 || tendered < total}
+              disabled={cart.length === 0 || Number(amountTendered) < total}
               onClick={handleCompleteSale}
+              title={cart.length === 0 ? 'Add items first' : Number(amountTendered) < total ? 'Amount tendered is insufficient' : 'Click to complete transaction'}
             >
-              Complete Transaction
+              💳 Complete Transaction
             </button>
           </div>
         </div>
