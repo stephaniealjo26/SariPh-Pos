@@ -94,6 +94,21 @@ export const TransactionProvider = ({ children }) => {
     });
   };
 
+  const markTransactionDone = (txId, cashier) => {
+    setTransactions(prev =>
+      prev.map(tx => tx.id === txId
+        ? { ...tx, status: "MARKED_DONE", markedDoneAt: new Date().toISOString() }
+        : tx
+      )
+    );
+    addAudit({
+      type: "MARK_DONE",
+      txId,
+      cashier,
+      details: `Transaction marked as done. Reprinting disabled.`,
+    });
+  };
+
   const logReprint = (txId, cashier) => {
     setTransactions(prev =>
       prev.map(tx => tx.id === txId
@@ -138,6 +153,7 @@ export const TransactionProvider = ({ children }) => {
       cancelTransaction,
       logVoidItem, 
       postVoidTransaction,
+      markTransactionDone,
       logReprint, 
       lastTransaction, 
       todayStats: getTodayStats(), // Return the result of the function
